@@ -19,7 +19,25 @@ It then compresses that into a compact `PageSpec` JSON with:
 - Spacing tokens (not raw pixels)
 - Layout orientation, gap, alignment, and padding
 
-## Setup
+## Installation
+
+In a consuming repo (e.g., nitro-web):
+
+```bash
+# Add to .npmrc in your project
+@powerhome:registry=https://npm.pkg.github.com
+
+# Install
+npm install @powerhome/playbook-builder
+```
+
+Requires a GitHub PAT with `read:packages` scope in your user-level `~/.npmrc`:
+
+```
+//npm.pkg.github.com/:_authToken=YOUR_TOKEN
+```
+
+## Development setup
 
 ```bash
 # 1. Get a Figma personal access token
