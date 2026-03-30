@@ -60,7 +60,8 @@ function autoOutputPath(nodeId: string, raw: boolean): string {
 
 function resolvedOutputPath(outPath: string): string {
   const resolved = path.resolve(outPath)
-  if (!resolved.startsWith(OUTPUT_DIR)) {
+  const relative = path.relative(OUTPUT_DIR, resolved)
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error("Output path must be within the output/ directory")
   }
   return resolved
