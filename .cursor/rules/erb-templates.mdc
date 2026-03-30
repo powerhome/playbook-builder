@@ -1,0 +1,105 @@
+---
+description: ERB template standards
+globs: "**/*.erb"
+alwaysApply: false
+---
+
+# ERB Template Standards
+
+> **Design system:** nitro-web uses Playbook exclusively — all UI is built with `pb_rails()` helpers. See `frontend-development.mdc` for the full design system rules and component selection. See `playbook-components.mdc` for prop reference.
+
+## Use Playbook UI Helpers
+
+Always use `pb_rails()` Playbook helpers for UI components instead of raw HTML:
+
+```erb
+<%# GOOD - Playbook components %>
+<%= pb_rails("card") do %>
+  <%= pb_rails("title", props: { text: "Hello", size: 3 }) %>
+  <%= pb_rails("body", props: { text: "Content here" }) %>
+<% end %>
+
+<%= pb_rails("button", props: { text: "Submit", variant: "primary" }) %>
+
+<%= pb_rails("flex", props: { justify: "between" }) do %>
+  <%= pb_rails("flex_item") { "Left" } %>
+  <%= pb_rails("flex_item") { "Right" } %>
+<% end %>
+```
+
+## No Inline JavaScript
+
+Never put JavaScript directly in templates:
+```erb
+<%# BAD %>
+<script>
+  $(document).ready(function() { ... });
+</script>
+
+<%# GOOD - put JS in assets directory %>
+<%= javascript_include_tag "my_feature" %>
+```
+
+## ERB Lint Compliance
+
+All ERB files must pass `erb_lint`. Common rules:
+- Proper indentation
+- No trailing whitespace
+- RuboCop rules apply to embedded Ruby
+- **Trailing commas required** in multiline hashes (`Style/TrailingCommaInHashLiteral`)
+
+```erb
+<%# CORRECT — trailing comma on last key-value pair %>
+<%= pb_rails("title", props: {
+  text: "Hello",
+  size: 3,
+}) %>
+
+<%# WRONG — will fail RuboCop lint %>
+<%= pb_rails("title", props: {
+  text: "Hello",
+  size: 3
+}) %>
+```
+
+## Follow Component Patterns
+
+Look at existing patterns in `components/` directory:
+- `components/warranty/app/views/` - example view templates
+- `components/sales/app/components/` - ViewComponent examples
+
+## ViewComponent Integration
+
+For complex components, use ViewComponent pattern:
+```erb
+<%# In view %>
+<%= render MyComponent.new(title: "Hello") %>
+
+<%# Component template (my_component.html.erb) %>
+<%= pb_rails("card", props: { padding: "md" }) do %>
+  <%= pb_rails("title", props: { text: @title, size: 4 }) %>
+<% end %>
+```
+
+## Form Helpers
+
+Use Rails form helpers with Playbook styling:
+```erb
+<%= form_with model: @user do |f| %>
+  <%= pb_rails("text_input", props: {
+    label: "Name",
+    name: "user[name]",
+    value: @user.name,
+  }) %>
+  <%= pb_rails("button", props: { text: "Save", type: "submit" }) %>
+<% end %>
+```
+
+## Turbolinks Compatibility
+
+Use `data-no-turbolink` for links to non-Turbolinks pages:
+```erb
+<div data-no-turbolink>
+  <%= link_to "Old Page", old_path %>
+</div>
+```

@@ -1,0 +1,34 @@
+{
+  "name": "@powerhome/playbook-builder",
+  "version": "0.1.0",
+  "description": "Fetch Figma designs via REST API and produce compact Playbook page specs",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/powerhome/playbook-builder.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "bin": {
+    "playbook-builder": "./bin/playbook-builder"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "fetch": "./bin/playbook-builder",
+    "prepublishOnly": "npm run build",
+    "test:package": "node scripts/verify-package.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

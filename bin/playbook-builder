@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# Self-healing wrapper for playbook-builder CLI.
+# Ensures node_modules and dist/ exist before running the compiled JS.
+# Installed npm packages ship dist/ only: skip npm install and build in that case.
+# ---------------------------------------------------------------------------
+
+set -euo pipefail
+
+# npm copies this script into node_modules/.bin/ — parent of bin is not the package root.
+BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ "$(basename "$BIN_DIR")" = ".bin" ]; then
+  SCRIPT_DIR="$(cd "$BIN_DIR/../@powerhome/playbook-builder" && pwd)"
+else
+  SCRIPT_DIR="$(cd "$BIN_DIR/.." && pwd)"
+fi
+
+NEEDS_BUILD=false
+if [ ! -f "$SCRIPT_DIR/dist/playbook-builder.js" ]; then
+  NEEDS_BUILD=true
+elif [ -d "$SCRIPT_DIR/src" ]; then
+  shopt -s nullglob
+  for src in "$SCRIPT_DIR"/src/*.ts; do
+    if [ "$src" -nt "$SCRIPT_DIR/dist/playbook-builder.js" ]; then
+      NEEDS_BUILD=true
+      break
+    fi
+  done
+  shopt -u nullglob
+fi
+
+# Prebuilt install (registry): run immediately — no node_modules or TypeScript required
+if [ "$NEEDS_BUILD" = false ]; then
+  exec node "$SCRIPT_DIR/dist/playbook-builder.js" "$@"
+fi
+
+# Dev / git clone: install deps and compile
+if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
+  echo "[playbook-builder] node_modules not found. Running npm install..." >&2
+  (cd "$SCRIPT_DIR" && npm install --silent)
+fi
+
+echo "[playbook-builder] Building TypeScript..." >&2
+(cd "$SCRIPT_DIR" && npm run build --silent)
+
+exec node "$SCRIPT_DIR/dist/playbook-builder.js" "$@"

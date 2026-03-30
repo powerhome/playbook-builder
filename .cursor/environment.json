@@ -1,0 +1,11 @@
+{
+  "snapshot": "snapshot-20260206-e11bc4ab-7ad1-405e-9e5b-3c7bfda737f8",
+  "install": "bundle check || bundle install",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "Datastores",
+      "command": "sudo docker compose --profile test logs -f"
+    }
+  ]
+}

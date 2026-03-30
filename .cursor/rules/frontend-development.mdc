@@ -1,0 +1,319 @@
+---
+description: Frontend development standards — Playbook UI design system, component selection, spacing tokens, and styling rules. MANDATORY for all frontend code.
+globs: "**/*.{tsx,ts,jsx,js,erb,html.erb}"
+alwaysApply: true
+---
+
+# Frontend Development — Playbook Design System
+
+> **Companion reference:** See `playbook-components.mdc` for the full component prop reference.
+
+## What is Playbook?
+
+**Playbook** is Power Home Remodeling's open-source design system. It provides a complete set of UI components, spacing tokens, color variables, and typography — everything needed to build consistent interfaces. Nitro-web uses Playbook as its **sole** design system; no other UI libraries or CSS frameworks (Bootstrap, Tailwind, Material UI, etc.) are used or permitted.
+
+**How Playbook is consumed:**
+
+| Context | How to use | Example |
+|---------|-----------|---------|
+| **React / TypeScript** | Import named components from `playbook-ui` | `import { Card, Flex, Title } from "playbook-ui"` |
+| **Rails ERB** | Use the `pb_rails()` helper with a component name and props hash | `<%= pb_rails("card", props: { padding: "md" }) %>` |
+| **Charts** (rare) | Import from `playbook-ui/charts` | `import { PbBarGraph } from "playbook-ui/charts"` |
+
+**Docs:** https://playbook.powerapp.cloud/
+
+## Core Rules
+
+Agents MUST:
+- Use Playbook components for every UI element — never raw HTML tags
+- Use Playbook spacing tokens — never hardcode pixel values
+- Use Playbook color props/variables — never hardcode hex values
+- Import only from `playbook-ui` — never install or import other UI libraries
+- Follow component composition patterns in `playbook-components.mdc`
+
+Agents MUST NOT:
+- Create custom UI components when a Playbook equivalent exists
+- Use `className` for spacing, colors, or typography
+- Use `style={{ padding: "24px" }}` — use `padding="md"` instead
+
+---
+
+## Imports
+
+### React / TypeScript
+
+```typescript
+// CORRECT — named imports from playbook-ui package
+import { Button, Card, Flex, Title, Body } from "playbook-ui"
+
+// CORRECT — chart components (rarely needed)
+import { PbCircleChart } from "playbook-ui/charts"
+
+// WRONG — never use relative paths or other UI packages
+import { Button } from "./components/playbook"
+import { Button } from "./components/ui/button"
+```
+
+### ERB / Rails
+
+```erb
+<%# CORRECT — pb_rails helper with props hash %>
+<%= pb_rails("button", props: { text: "Submit", variant: "primary" }) %>
+
+<%# CORRECT — sub-components use slash notation %>
+<%= pb_rails("card/card_header", props: { padding: "sm" }) do %>
+  <%= pb_rails("title", props: { text: "Header", size: 4 }) %>
+<% end %>
+
+<%# WRONG — raw HTML %>
+<button class="btn btn-primary">Submit</button>
+```
+
+---
+
+## React vs ERB Naming
+
+| Concept | React (camelCase) | ERB (snake_case) |
+|---------|-------------------|-------------------|
+| Spacing | `marginBottom="md"` | `margin_bottom: "md"` |
+| Padding shorthand | `paddingX="lg"` | `padding_x: "lg"` |
+| Justify (Flex prop) | `justify="between"` | `justify: "between"` |
+| Justify (spec/global) | `"spaceBetween"` → use `"between"` | `"spaceBetween"` → use `"between"` |
+| Required indicator | `requiredIndicator` | `required_indicator: true` |
+| Text content | JSX children | `text: "value"` or block |
+| htmlOptions | `htmlOptions={{ style: {...} }}` | `html_options: { style: "..." }` inside `props:` |
+| **Components** | | |
+| Text field | `<TextInput />` | `pb_rails("text_input")` |
+| Multi-select card | `<SelectableCard>` | `pb_rails("selectable_card")` |
+| Input group | `<FormGroup>` | `pb_rails("form_group")` |
+| Divider | `<SectionSeparator>` | `pb_rails("section_separator")` |
+| Inline loader | `<LoadingInline>` | `pb_rails("loading_inline")` |
+| **Sub-components** | | |
+| Nav item | `<NavItem>` | `pb_rails("nav/item")` |
+| Card header | `<Card.Header>` | `pb_rails("card/card_header")` |
+| Table head | `<Table.Head>` | `pb_rails("table/table_head")` |
+| Table row | `<Table.Row>` | `pb_rails("table/table_row")` |
+| Table header | `<Table.Header>` | `pb_rails("table/table_header")` |
+| Table cell | `<Table.Cell>` | `pb_rails("table/table_cell")` |
+| Dialog header | `<Dialog.Header>` | `pb_rails("dialog/dialog_header")` |
+| Flex child | `<FlexItem>` | `pb_rails("flex/flex_item")` |
+| Breadcrumb item | `<BreadCrumbItem>` | `pb_rails("bread_crumbs/bread_crumb_item")` |
+
+---
+
+## Component Selection Guide
+
+### Typography
+
+| Need | Component | Key Props |
+|------|-----------|-----------|
+| Page/section heading | `Title` | size: 1–4 (3 = page, 4 = card) |
+| Paragraph text | `Body` | color: default / light / lighter |
+| Small label/timestamp | `Caption` | color, size |
+| Uppercase metadata | `Detail` | bold |
+
+### Layout
+
+| Need | Component | Notes |
+|------|-----------|-------|
+| Flexbox layout | `Flex` | Primary layout tool |
+| Flex child wrapper | `FlexItem` | Only when you need a dedicated flex child with no other component |
+| Content container | `Card` | Use padding prop |
+| Page structure | `Layout` | With .Side / .Body / .Header |
+| Divider line | `SectionSeparator` | Between sections |
+
+**`flex` global prop vs `Flex` component vs `FlexItem`** — these are three distinct things:
+
+| Concept | What it is | When to use |
+|---------|-----------|-------------|
+| `Flex` | **Component** — flexbox container | Wrapping children in a flex layout |
+| `FlexItem` | **Component** — dedicated flex child | Only when no other component wraps the content |
+| `flex` | **Global prop** — works on ANY component | Sizing a child within a Flex parent |
+
+The `flex` global prop can be applied directly to `Card`, `Flex`, `Body`, `TextInput`, etc. You do NOT need `FlexItem` to use flex ratios:
+
+```tsx
+// CORRECT — flex global prop directly on components (props in A-Z order)
+<Flex gap="md" orientation="row">
+  <Card flex="2" padding="md">{/* 40% */}</Card>
+  <Flex flex="3" orientation="column">{/* 60% */}</Flex>
+</Flex>
+
+// ALSO VALID — FlexItem when no other component wraps the content
+<Flex orientation="row">
+  <FlexItem flex="3">{/* just text or mixed content */}</FlexItem>
+  <FlexItem flex="2">{/* just text or mixed content */}</FlexItem>
+</Flex>
+```
+
+```erb
+<%# ERB — flex global prop directly on components %>
+<%= pb_rails("flex", props: { orientation: "row", gap: "md" }) do %>
+  <%= pb_rails("card", props: { flex: "2", padding: "md" }) do %>...<% end %>
+  <%= pb_rails("flex", props: { flex: "3", orientation: "column" }) do %>...<% end %>
+<% end %>
+```
+
+### Actions & Navigation
+
+| Need | Component | Notes |
+|------|-----------|-------|
+| Action button | `Button` | Max 1 primary per section |
+| Text link | `Link` | For navigation |
+| Tab navigation | `Nav` | horizontal prop for tabs |
+| Sidebar nav | `Nav` | Vertical with icons |
+| Page hierarchy | `BreadCrumbs` | |
+| Filter toggles | `Pill` | Not Badge |
+
+### Forms
+
+| Need | Component | Notes |
+|------|-----------|-------|
+| Text field | `TextInput` | Always include label |
+| Dropdown (4+ options) | `Select` | |
+| Multi-line text | `Textarea` | |
+| Boolean/multi-select | `Checkbox` | |
+| Single choice (2–3) | `Radio` | Use Select for 4+ |
+| On/off switch | `Toggle` | Not Checkbox |
+| Date entry | `DatePicker` | |
+| Autocomplete search | `Typeahead` | |
+
+### Data Display
+
+| Need | Component | Notes |
+|------|-----------|-------|
+| Tabular data | `Table` | Wrap in Card padding="none" |
+| Simple list | `List` | With List.Item |
+| Label + value pair | `LabelValue` | Read-only data |
+| Numeric metric | `StatValue` | Dashboard stats |
+
+### Feedback & Indicators
+
+| Need | Component | Notes |
+|------|-----------|-------|
+| User avatar | `Avatar` | Always include name |
+| Status tag | `Badge` | variant for color |
+| Icon | `Icon` | Font Awesome names |
+| Modal | `Dialog` | With Header / Body / Footer |
+| Spinner | `Loading` / `LoadingInline` | |
+| Tooltip | `Tooltip` | |
+| Toast | `FixedConfirmationToast` | |
+
+### Charts (rarely needed in Nitro)
+
+| Need | Import |
+|------|--------|
+| `PbCircleChart`, `PbBarGraph`, `PbLineGraph`, `PbGaugeChart` | `"playbook-ui/charts"` |
+
+---
+
+## Spacing Tokens (8px Grid)
+
+Use token names — never pixel values.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `xxs` | 4px | Icon-to-text, tight gaps |
+| `xs` | 8px | Related items, list items |
+| `sm` | 16px | Form fields, compact sections |
+| `md` | 24px | Between sections |
+| `lg` | 32px | Card padding, major gaps |
+| `xl` | 40px | Page margins |
+
+## Color Props
+
+Use component color props — never hex values.
+
+| Purpose | Prop |
+|---------|------|
+| Primary text | `color="default"` |
+| Secondary text | `color="light"` |
+| Primary action | `variant="primary"` |
+| Success | `variant="success"` |
+| Warning | `variant="warning"` |
+| Error | `variant="error"` |
+| Info | `variant="info"` |
+
+## Styling — Priority Order
+
+**Never use `style={{}}` directly on Playbook components.** Follow this priority:
+
+1. **Playbook props first** — spacing tokens, color props, layout props
+2. **Global props** — `maxWidth`, `width`, `height`, `minWidth`, `maxHeight`, `flex`, `flexGrow`
+3. **`htmlOptions`** — for CSS that has no Playbook prop equivalent: `htmlOptions={{ style: { ... } }}`
+4. **`className`** — only for non-Playbook concerns (animations, third-party integrations)
+
+```tsx
+// CORRECT — Playbook global props for dimensions (props in A-Z order)
+<Card margin="auto" maxWidth="lg" padding="none">
+<Card flex="3">
+<Flex width="100%">
+
+// CORRECT — htmlOptions when no global prop exists
+<Flex htmlOptions={{ style: { height: "100vh" } }}>
+
+// FORBIDDEN — never use style={{}} directly
+<Flex style={{ width: "960px" }}>       // → maxWidth="lg" margin="auto"
+<Card style={{ width: "540px" }}>       // → flex="3" (global prop on Card)
+<Card style={{ padding: "24px" }}>      // → padding="md"
+<Body style={{ color: "#687887" }}>     // → color="light"
+```
+
+### ERB Styling (`pb_rails`)
+
+In ERB, `html_options` is a key **inside** the `props:` hash — NOT a separate keyword argument.
+
+```erb
+<%# CORRECT — html_options inside props hash %>
+<%= pb_rails("flex", props: {
+  orientation: "column",
+  html_options: { style: "background: rgba(193,205,214,0.1)" }
+}) %>
+
+<%# CORRECT — hash syntax for style (also valid) %>
+<%= pb_rails("card", props: {
+  padding: "none",
+  html_options: { style: { width: "fit-content" } }
+}) %>
+
+<%# WRONG — html_options as separate keyword (raises "unknown keyword" error) %>
+<%= pb_rails("flex", props: { orientation: "column" }, html_options: { style: "..." }) %>
+```
+
+### Centered Content Pattern
+
+For centered, width-constrained page content (common in Nitro forms):
+
+```tsx
+// CORRECT — Card with maxWidth + margin="auto"
+<Card align="center" margin="auto" maxWidth="lg" padding="none">
+  <Flex align="stretch" gap="md" padding="md" width="100%">
+    <FlexItem flex="3">{/* main content */}</FlexItem>
+    <FlexItem flex="2">{/* sidebar */}</FlexItem>
+  </Flex>
+</Card>
+
+// WRONG — inline styles for width and centering
+<Flex style={{ width: "960px", margin: "0 auto" }}>
+```
+
+### Column Proportions
+
+Use the `flex` global prop for proportional sizing instead of fixed pixel widths.
+Apply `flex` directly to any child component — `FlexItem` is NOT required.
+
+| Figma Proportion | `flex` global prop |
+|------------------|-------------------|
+| 60% / 40% | `flex="3"` / `flex="2"` |
+| 75% / 25% | `flex="3"` / `flex="1"` |
+| 50% / 50% | `flex="1"` / `flex="1"` |
+| 70% / 30% | `flex="7"` / `flex="3"` |
+
+---
+
+## When Unsure About a Component
+
+1. Search codebase for existing similar pages/patterns first
+2. Search: `from "playbook-ui"` (React) or `pb_rails` (ERB)
+3. Check docs: https://playbook.powerapp.cloud/
+4. Ask the engineer which Playbook component fits
