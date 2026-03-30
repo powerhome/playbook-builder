@@ -1,0 +1,326 @@
+---
+description: Database migration and schema rules
+globs: "**/db/migrate/*.rb"
+alwaysApply: false
+---
+
+# Database Standards for Nitro
+
+## Migration Location Rules
+
+### Schema Migrations (DDL - table/column changes)
+- **Location:** `components/<component_name>/db/migrate/`
+- **Contains:** `create_table`, `add_column`, `add_index`, `change_column`, etc.
+- **Updates:** Must update `structure_self.sql` in the component
+
+### Data Migrations (DML - data changes)
+- **Location:** `db/migrate/` (umbrella app only)
+- **Contains:** `UPDATE`, `INSERT`, `DELETE`, ActiveRecord CRUD operations
+- **Generator:** `bin/rails g data_migration YourMigrationName`
+- **Base class:** Inherit from `NitroMysql::DataMigration` for background job support
+
+```ruby
+require "nitro_mysql/data_migration"
+
+class BackfillSomeColumn < NitroMysql::DataMigration
+  def up
+    each_record do |record|
+      record.update_columns(some_column: value)
+    end
+  end
+
+  def down; end
+end
+```
+
+---
+
+## Steps to Create a Migration
+
+1. Navigate to the component folder, run: `bin/rails g migration [MigrationName]`
+2. Modify the migration file, navigate back to umbrella folder
+3. Run: `bin/cobra cmd [component name] deps`
+4. Run: `bin/cobra cmd [component name] schema`
+   - You must create a Rails model for any new table in order for this command to properly update structure_self.sql for the component
+5. Adjust RSpecs for the migration
+6. If adding a new table, consider adding to the readonly role:
+   - Edit `db/mysql-role-scripts/role_nitro_readonly.sql`
+   - Add a line in alphabetical order: `GRANT SELECT ON pws_prod.your_table_name TO 'role_nitro_readonly'@'%';`
+   - **Note:** Not every table should be in the readonly role (e.g., tables with sensitive data). When in doubt, ask the user whether the new table should be included.
+7. If adding a new table, consider adding to Data Taster for dev/demo seed replication:
+   - Edit `components/<component_name>/config/data_taster_export_tables.yml`
+   - Add: `your_table_name: "<%= recent_table_updates %>"`
+   - **Note:** Not every table should be in Data Taster (e.g., tables with sensitive data). When in doubt, ask the user whether the new table should be included.
+
+---
+
+## Creating New Tables - Required Elements
+
+### 1. Timestamps (REQUIRED)
+```ruby
+create_table :example do |t|
+  # ... columns ...
+  t.timestamps  # Always add this
+end
+```
+
+### 2. Audit Tracking Columns (REQUIRED for most tables)
+```ruby
+t.references :created_by, foreign_key: false
+t.references :updated_by, foreign_key: false
+```
+
+Then in the model:
+```ruby
+class MyModel < ApplicationRecord
+  track_audit_data user: true
+end
+```
+
+### 3. Training Sync Consideration
+- If not relevant to training, add to `NO_COPY_TABLES` in `components/training/lib/training/training_replicating_table.rb`
+
+---
+
+## Column Type Rules
+
+### String Columns - Always Specify Limit
+```ruby
+# GOOD
+t.string :phone_number, null: false, limit: 10
+t.string :name, limit: 100
+
+# BAD - wastes index space
+t.string :phone_number
+```
+
+### Decimal/Currency Columns
+```ruby
+# Standard for currency
+t.decimal :amount, precision: 14, scale: 2
+```
+
+### Avoid Float Columns for Currency
+Float causes rounding errors. Use `decimal` instead.
+
+---
+
+## Indexing Rules
+
+### When to Add Indexes
+- Columns in `WHERE` clauses (filtering)
+- Columns in `ORDER BY` clauses (sorting)
+- Foreign key columns
+- Polymorphic associations (combination index)
+
+### Combination Index Order
+Order from **least unique** to **most unique**:
+```ruby
+add_index :event_attendees, [:attendee_type, :attendee_id]
+```
+
+### DO NOT
+- Over-index (wastes space)
+- Use index hints (`USE INDEX`) - prevents MySQL optimization
+
+---
+
+## Foreign Keys
+
+**AVOID foreign key constraints.** They cause issues with dev dumps and training sync.
+
+To drop a foreign key:
+```ruby
+require "nitro_mysql/drop_fk_migration"
+
+class RemoveSomeFk < ActiveRecord::Migration[7.1]
+  disable_departure!
+  include NitroMysql::DropFkMigration
+
+  def up
+    drop_fk :source_table, :referenced_table
+  end
+
+  def down; end
+end
+```
+
+---
+
+## Deleting Columns - Two PR Process
+
+**Never delete a column in the same PR that removes code usage.**
+
+### PR 1: Stop Using the Column
+```ruby
+class User < NitroComponent::ApplicationRecord
+  self.ignored_columns = ["column_to_delete"]
+end
+```
+
+### PR 2: Delete the Column
+```ruby
+class RemoveOldColumn < ActiveRecord::Migration[7.1]
+  def up
+    remove_column :users, :column_to_delete
+  end
+
+  def down
+    add_column :users, :column_to_delete, :string
+  end
+end
+```
+
+Remove the column from self.ignored_columns in the model.
+
+---
+
+## Renaming Columns - Safe Process
+
+**Never use `rename_column` directly.**
+
+1. Create new column
+2. Copy data from old to new column
+3. Update code to use new column
+4. Delete old column (two-PR process)
+
+---
+
+## Deleting Tables
+
+```ruby
+class RemoveExampleTable < ActiveRecord::Migration[6.0]
+  def up
+    drop_table :example_table_name, if_exists: true
+  end
+
+  def down; end
+end
+```
+
+Also required:
+1. Mark in `components/<component_name>/config/data_taster_export_tables.yml`: `example_table_name: "<%= deprecated_table %>"`
+2. Add to `NO_COPY_TABLES` in training sync
+
+---
+
+## Long Running Migrations (>30 minutes)
+
+Deployment times out after 30 minutes. Options:
+1. Request DBA to run schema changes
+2. Use `NitroMysql::DataMigration` for background jobs
+3. Create a rake task for manual execution
+
+---
+
+## Dangerous Operations to Avoid
+
+### NEVER use `update_all` or `delete_all`
+```ruby
+# BAD - locks table
+User.where(active: false).delete_all
+
+# GOOD - row-by-row
+User.where(active: false).find_each(&:destroy)
+```
+
+### NEVER wrap large updates in transactions
+```ruby
+# BAD
+ActiveRecord::Base.transaction do
+  Branch.all.each { |b| b.update(cool: true) }
+end
+
+# GOOD
+Branch.find_each { |b| b.update(cool: true) }
+```
+
+---
+
+## Data Migration Best Practices
+
+### Use update_columns and temporarily disable the Rails/SkipsModelValidations cop to skip callbacks
+```ruby
+# GOOD - skips callbacks
+record.update_columns(column: value) # rubocop:disable Rails/SkipsModelValidations
+
+# BAD - triggers callbacks
+record.update(column: value)
+```
+
+### Parallelize Large Data Migrations
+```ruby
+class LargeDataMigration < NitroMysql::DataMigration
+  def scope
+    Project.closed
+  end
+
+  def batch_size
+    5_000  # Min: 1000, Max: 20000
+  end
+
+  def up
+    each_record do |project|
+      project.update_columns(some_column: value)
+    end
+  end
+
+  def down; end
+end
+```
+
+---
+
+## Avoid Using application models in Migrations
+
+Define a local class:
+```ruby
+class MyMigration < ActiveRecord::Migration[7.1]
+  class SomeModel < ApplicationRecord
+    self.table_name = "some_models"
+  end
+
+  def change
+    SomeModel.find_each do |record|
+      record.update_columns(category: "processed")
+    end
+  end
+end
+```
+
+---
+
+## Emoji/Unicode Support
+
+Use `MultiByteTextType` for emoji support:
+```ruby
+class Comment < MyComponent::ApplicationRecord
+  attribute :body, NitroMysql::MultiByteTextType.new
+end
+```
+
+---
+
+## Environment Considerations
+
+Migrations run in **two environments** per deployment:
+- Main DB (`pws_prod`, `nitro_qa`)
+- Training DB (`pws_prod_training`, `nitro_qa_training`)
+
+**Double your time estimates.**
+
+---
+
+## Quick Reference Checklist
+
+- [ ] Correct location (component for schema, umbrella for data)
+- [ ] Appropriate indexes added
+- [ ] No foreign key constraints
+- [ ] Training sync impact considered
+- [ ] `timestamps` included for new tables
+- [ ] Audit columns added for new tables
+- [ ] Column limits specified for strings
+- [ ] Precision/scale specified for decimals
+- [ ] Using `update_columns` in data migrations
+- [ ] New tables added to `data_taster_export_tables.yml`
+- [ ] New tables added to readonly role

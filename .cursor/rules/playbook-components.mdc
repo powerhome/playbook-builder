@@ -1,0 +1,401 @@
+---
+description: Playbook component prop reference — consult when choosing props for Playbook components
+globs: ["**/*.tsx", "**/*.ts", "**/*.erb"]
+---
+
+# Playbook Component Props Reference
+
+> **Parent rule:** See `frontend-development.mdc` for component selection, spacing tokens, styling priorities, and React vs ERB naming.
+
+Curated reference of commonly used Playbook components and their key props.
+Skip `dark`, `className`, `id`, `aria`, `data`, `htmlOptions` — those are always available.
+
+---
+
+## Layout
+
+### Flex
+Flexbox container — primary layout tool.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| orientation | `"row"`, `"column"` | `"row"` | Main axis direction |
+| gap | `"xxs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"none"` | `"none"` | Space between children |
+| align | `"start"`, `"center"`, `"end"`, `"stretch"`, `"baseline"` | `"none"` | Cross-axis alignment |
+| justify | `"start"`, `"center"`, `"end"`, `"around"`, `"between"`, `"evenly"` | `"none"` | Main-axis distribution. Figma specs emit `"spaceBetween"` — convert to `"between"` |
+| wrap | `boolean` | `false` | Allow children to wrap |
+| inline | `boolean` | `false` | Inline-flex display |
+| reverse | `boolean` | `false` | Reverse child order |
+
+### FlexItem
+Dedicated flex child wrapper. Use only when no other Playbook component wraps the content.
+The `flex` global prop can be applied directly to any component — `FlexItem` is not required for flex sizing.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| grow | `boolean` | `false` | Allow item to grow (`flex-grow: 1`) |
+| shrink | `boolean` | `false` | Allow item to shrink (`flex-shrink: 1`) |
+| fixedSize | `string` | — | Fixed width/height (e.g., `"250px"`) |
+| overflow | `"auto"`, `"hidden"`, `"scroll"`, `"visible"` | — | Overflow behavior |
+
+**Note:** Use the `flex` **global prop** (e.g., `flex="3"`) on any component for proportional sizing.
+React: `<FlexItem>` / ERB: `pb_rails("flex/flex_item")`.
+
+### Card
+Elevated content container with border and shadow.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| padding | `"none"`, `"xxs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"` | `"md"` | Inner padding; use `"none"` for tables |
+| borderRadius | `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"none"`, `"rounded"` | `"md"` | Corner rounding |
+| borderNone | `boolean` | `false` | Remove border entirely |
+| selected | `boolean` | `false` | Blue left-border highlight |
+| tag | `"div"`, `"section"`, `"footer"`, `"header"`, `"article"` | `"div"` | HTML element |
+
+### Layout
+Page-level layout with sidebar/body regions. Use sub-components `Layout.Side`, `Layout.Body`, `Layout.Header`.
+
+### SectionSeparator
+Horizontal or vertical divider between sections.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| orientation | `"horizontal"`, `"vertical"` | `"horizontal"` | Line direction |
+| lineStyle | `"solid"`, `"dashed"` | `"solid"` | Line style |
+| variant | `"card"`, `"background"` | `"card"` | Visual weight |
+| text | `string` | — | Optional label in the divider |
+
+**Gotcha:** SectionSeparator renders at zero/minimal width by default. Always add `width="100%"` (React) or `width: "100%"` (ERB) so the line stretches to fill its container.
+
+---
+
+## Typography
+
+### Title
+Headings and section labels.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| size | `1`, `2`, `3`, `4` | `3` | 1=page hero, 3=section, 4=card/label |
+| bold | `boolean` | `false` | Bold weight |
+| color | `"default"`, `"light"`, `"lighter"`, `"link"`, `"success"`, `"error"` | `null` | Text color token |
+| tag | `"h1"`–`"h6"`, `"p"`, `"span"`, `"div"` | `"h3"` | HTML element |
+
+### Body
+Paragraph / body text.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| color | `"default"`, `"light"`, `"lighter"`, `"link"`, `"success"`, `"error"` | `"default"` | Text color token |
+| tag | `"h1"`–`"h6"`, `"p"`, `"span"`, `"div"` | `"div"` | HTML element |
+
+### Caption
+Small uppercase label text. Renders uppercase by default.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| size | `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"` | `"md"` | Font size |
+| color | `"default"`, `"light"`, `"lighter"`, `"link"`, `"success"`, `"error"` | — | Text color token |
+| tag | `"h1"`–`"h6"`, `"p"`, `"span"`, `"div"`, `"caption"` | `"div"` | HTML element |
+
+### Detail
+Smaller body text, often used for metadata. Defaults to light color.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| bold | `boolean` | `false` | Bold weight |
+| color | `"default"`, `"light"`, `"lighter"`, `"link"`, `"success"`, `"error"` | `"light"` | Defaults light unlike Body |
+| tag | `"h1"`–`"h6"`, `"p"`, `"span"`, `"div"` | `"div"` | HTML element |
+
+---
+
+## Actions & Navigation
+
+### Button
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| variant | `"primary"`, `"secondary"`, `"link"`, `"danger"`, `"reaction"` | `"primary"` | Max 1 primary per section |
+| size | `"sm"`, `"md"`, `"lg"` | — | Button size |
+| text | `string` | — | Button label |
+| icon | `string` | — | Font Awesome icon name |
+| disabled | `boolean` | `false` | Disabled state |
+| loading | `boolean` | `false` | Show loading spinner |
+| fullWidth | `boolean` | `false` | Stretch to container width |
+| link | `string` | — | Navigate to URL on click |
+
+### Link
+Text link for navigation.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| href | `string` | — | Destination URL |
+| color | `"default"`, `"body"`, `"muted"`, `"destructive"` | `"default"` | Link color style |
+| icon | `string` | — | Leading icon |
+| underline | `boolean` | `false` | Show underline |
+| disabled | `boolean` | `false` | Disabled state |
+
+### Nav
+Navigation list — vertical sidebar or horizontal tabs.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| orientation | `"vertical"`, `"horizontal"` | — | Direction; horizontal = tabs |
+| variant | `"normal"`, `"subtle"` | `"normal"` | Visual emphasis |
+| borderless | `boolean` | — | Remove borders |
+| title | `string` | — | Section heading |
+
+### BreadCrumbs
+Page hierarchy trail. Children must be `BreadCrumbItem` components. Separator (`/`) is automatic.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | — | Simple text crumb |
+
+### Pill
+Status/category indicator chip. Text is uppercase by default.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | — | Label text (required) |
+| variant | `"primary"`, `"neutral"`, `"success"`, `"warning"`, `"error"`, `"info"` | `"neutral"` | Color variant |
+| textTransform | `"none"`, `"lowercase"` | — | Set `"none"` when Figma text is not uppercase |
+
+**Gotcha:** `text` is **required** — use `text="Review"` (React) or `text: "Review"` (ERB). Never use JSX children `<Pill>Review</Pill>` — they are ignored.
+
+### Badge
+Small status tag for labeling items.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | — | Badge label |
+| variant | `"neutral"`, `"primary"`, `"success"`, `"warning"`, `"error"`, `"info"`, `"notification"` | `"neutral"` | Color variant |
+| rounded | `boolean` | `false` | Rounded pill shape |
+
+**Gotcha:** Same as Pill — `text` is **required**. Use `text="+1000"` (React) or `text: "+1000"` (ERB), never JSX children.
+
+---
+
+## Forms
+
+### TextInput
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| label | `string` | — | Always include a label |
+| placeholder | `string` | — | Hint text |
+| required | `boolean` | `false` | HTML form validation |
+| requiredIndicator | `boolean` | `false` | Visual red asterisk (ERB: `required_indicator`). Use with `required` |
+| disabled | `boolean` | `false` | Disabled state |
+| error | `string` | — | Error message text |
+| type | `"text"`, `"email"`, `"password"`, `"number"`, `"tel"`, `"url"` | `"text"` | Input type |
+
+**Gotcha:** `required` and `requiredIndicator` are **different props**. `required` enables HTML5 validation. `requiredIndicator` shows the visual `*` asterisk. For Figma builds, the spec emits `requiredIndicator` — use that, not `required`.
+
+### Textarea
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| label | `string` | — | Always include a label |
+| placeholder | `string` | — | Hint text |
+| rows | `number` | — | Visible rows; compute from Figma frame height |
+| required | `boolean` | `false` | HTML form validation |
+| requiredIndicator | `boolean` | `false` | Visual red asterisk (ERB: `required_indicator`). Use with `required` |
+| disabled | `boolean` | `false` | Disabled state |
+| error | `string` | — | Error message text |
+
+**Gotcha:** Same as TextInput — `requiredIndicator` shows the `*`, `required` does validation. These are separate concerns.
+
+### Select
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| label | `string` | — | Always include a label |
+| options | `Array<{value, text}>` | — | Dropdown options |
+| required | `boolean` | `false` | HTML form validation |
+| requiredIndicator | `boolean` | `false` | Visual red asterisk (ERB: `required_indicator`). Use with `required` |
+| disabled | `boolean` | `false` | Disabled state |
+| blankSelection | `string` | — | Placeholder text |
+
+### Checkbox
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | — | Checkbox label |
+| checked | `boolean` | `false` | Checked state |
+| disabled | `boolean` | `false` | Disabled state |
+| error | `boolean` | `false` | Error state |
+| indeterminate | `boolean` | `false` | Partial check state |
+
+### Radio
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| label | `string` | — | Radio label (required) |
+| value | `string` | — | Form value |
+| checked | `boolean` | `false` | Selected state |
+| disabled | `boolean` | `false` | Disabled state |
+
+### Toggle
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| size | `"sm"`, `"md"` | `"sm"` | Toggle size |
+| checked | `boolean` | `false` | On/off state |
+| disabled | `boolean` | `false` | Disabled state |
+
+### FormGroup
+Groups radio/checkbox/selectable-card inputs. Children must be direct (no wrapper Flexes).
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| fullWidth | `boolean` | `false` | Stretch children to equal width |
+
+### SelectableCard
+Card-style radio/checkbox input. Must be a direct child of FormGroup.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | — | Card label |
+| checked | `boolean` | `false` | Selected state (not `selected`) |
+| value | `string` | — | Form value |
+| name | `string` | — | Group name for radio behavior |
+| disabled | `boolean` | `false` | Disabled state |
+| multi | `boolean` | `true` | false = radio (single select) |
+| variant | `string` | `"default"` | Visual variant |
+
+### DatePicker
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| label | `string` | — | Always include a label |
+| placeholder | `string` | — | Hint text |
+| defaultDate | `string` | — | Initial date value |
+| enableTime | `boolean` | `false` | Show time picker |
+| format | `string` | `"m/d/Y"` | Date display format |
+| selectionType | `"month"`, `"week"`, `"quickpick"` | `"none"` | Selection mode |
+
+### Typeahead
+Autocomplete search input.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| label | `string` | — | Input label |
+| async | `boolean` | `false` | Load options on type |
+| disabled | `boolean` | `false` | Disabled state |
+| error | `string` | — | Error message |
+| pillColor | `"primary"`, `"neutral"`, `"success"`, `"warning"`, `"error"`, `"info"` | `"primary"` | Selected pill color |
+
+---
+
+## Data Display
+
+### Avatar
+User profile image or initials.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| name | `string` | — | User's name (always include) |
+| size | `"xxs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"` | `"md"` | Avatar size |
+| imageUrl | `string` | — | Profile image URL |
+| status | `"online"`, `"away"`, `"offline"` | — | Online indicator |
+
+### Icon
+Font Awesome icon.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| icon | `string` | — | FA icon name (e.g., `"chevron-right"`) |
+| size | `"xs"`, `"sm"`, `"lg"`, `"1x"`–`"10x"` | — | Icon size |
+| fixedWidth | `boolean` | `true` | Fixed width for alignment |
+| fontStyle | `"far"`, `"fas"`, `"fab"`, `"fak"` | `"far"` | FA weight (regular/solid/brand) |
+| spin | `boolean` | `false` | Spinning animation |
+
+### Table
+Data table. Wrap in `Card padding="none"` for proper borders.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| size | `"sm"`, `"md"`, `"lg"` | `"md"` | Row density |
+| container | `boolean` | `true` | Built-in Card wrapper |
+| responsive | `"collapse"`, `"scroll"`, `"none"` | `"collapse"` | Mobile behavior |
+| singleLine | `boolean` | `false` | Truncate cell text |
+| disableHover | `boolean` | `false` | Remove row hover |
+| striped | `boolean` | `false` | Alternating row colors |
+
+### LabelValue
+Read-only label + value pair.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| label | `string` | — | Label text (required) |
+| value | `string` | — | Value text |
+| variant | `"default"`, `"details"` | `"default"` | Visual style |
+| icon | `string` | — | Leading icon |
+
+### StatValue
+Large numeric display for dashboards.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| value | `string \| number` | — | The number to display (required) |
+| unit | `string` | — | Unit label (e.g., `"%"`, `"hrs"`) |
+
+### Timestamp
+Formatted date/time display.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| timestamp | `Date \| string` | — | ISO date string (required) |
+| variant | `"default"`, `"elapsed"`, `"updated"` | `"default"` | `"elapsed"` = "30 minutes ago" |
+| showDate | `boolean` | `true` | Show the date portion |
+| showTimezone | `boolean` | `false` | Show timezone label |
+| align | `"left"`, `"center"`, `"right"` | `"left"` | Text alignment |
+
+---
+
+## Feedback & Overlay
+
+### Dialog
+Modal dialog with optional header/body/footer sub-components.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| opened | `boolean` | — | Controls visibility (required) |
+| size | `"sm"`, `"md"`, `"lg"`, `"xl"`, `"content"` | `"md"` | Dialog width |
+| title | `string` | — | Header text |
+| status | `"info"`, `"caution"`, `"delete"`, `"error"`, `"success"` | — | Status icon style |
+| placement | `"left"`, `"center"`, `"right"` | `"center"` | Screen position |
+| closeable | `boolean` | — | Show close button |
+| loading | `boolean` | `false` | Loading state |
+| onClose | `() => void` | — | Close callback |
+
+### FixedConfirmationToast
+Toast notification anchored to screen edge.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | — | Toast message |
+| status | `"success"`, `"error"`, `"neutral"`, `"tip"` | `"neutral"` | Color/icon style |
+| open | `boolean` | — | Controls visibility |
+| closeable | `boolean` | `false` | Show close button |
+| autoClose | `number` | — | Milliseconds before auto-dismiss |
+| vertical | `"top"`, `"bottom"` | — | Screen position |
+| horizontal | `"left"`, `"center"`, `"right"` | — | Screen position |
+
+### Tooltip
+Hover/click tooltip overlay.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | — | Tooltip content (required) |
+| placement | `string` | — | Popover placement |
+| interaction | `boolean` | — | Allow interaction inside tooltip |
+
+### LoadingInline
+Inline loading spinner with text.
+
+| Prop | Values | Default | Notes |
+|------|--------|---------|-------|
+| text | `string` | `"Loading"` | Loading message |
+| align | `"left"`, `"center"`, `"right"` | `"left"` | Text alignment |

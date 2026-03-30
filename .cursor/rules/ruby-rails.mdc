@@ -1,0 +1,109 @@
+---
+description: Ruby and Rails coding standards
+globs: "**/*.rb"
+alwaysApply: false
+---
+
+# Ruby & Rails Standards
+
+## Linting & Formatting
+
+This project uses RuboCop for code style. Configuration is in `.rubocop.yml`.
+
+**After making changes, run linting:**
+```bash
+bundle exec rubocop -a
+```
+
+This will auto-correct most style issues. Only fix remaining issues manually when there are actual linting failures.
+
+## Method Visibility
+
+Always mark internal methods as `private`:
+```ruby
+class MyService
+  def public_method
+    internal_helper
+  end
+
+  private
+
+  def internal_helper
+    # implementation
+  end
+end
+```
+
+## Dangerous Operations to AVOID
+
+### Never use `update_all` or `delete_all`
+These lock the entire table and block replication:
+```ruby
+# BAD - locks table
+User.where(active: false).delete_all
+
+# GOOD - row-by-row
+User.where(active: false).find_each(&:destroy)
+```
+
+### Never wrap large updates in transactions
+```ruby
+# BAD - locks table for entire duration
+ActiveRecord::Base.transaction do
+  Branch.all.each { |b| b.update(cool: true) }
+end
+
+# GOOD - individual updates
+Branch.find_each { |b| b.update(cool: true) }
+```
+
+## Query Best Practices
+
+### Use `find_each` for large datasets
+```ruby
+# GOOD
+User.where(active: true).find_each do |user|
+  process(user)
+end
+
+# BAD - loads all into memory
+User.where(active: true).each { |u| process(u) }
+```
+
+### Use `.select` to limit columns
+```ruby
+# GOOD - only loads needed columns
+User.select(:id, :name).where(active: true)
+```
+
+### Let MySQL sort, not Ruby
+```ruby
+# GOOD - MySQL sorts
+Territory.order(:abbr).pluck(:abbr)
+
+# BAD - Ruby sorts (slower)
+Territory.pluck(:abbr).sort
+```
+
+## Avoid Serialize Fields
+
+Serialized fields hurt performance. Use proper table structure instead:
+```ruby
+# BAD
+class User < ApplicationRecord
+  serialize :preferences, JSON
+end
+
+# GOOD - use a separate table or JSON column type
+```
+
+## Audit Tracking
+
+For models that need audit tracking:
+```ruby
+class MyModel < ApplicationRecord
+  track_audit_data user: true
+end
+```
+
+Requires `created_by` and `updated_by` columns in the table.

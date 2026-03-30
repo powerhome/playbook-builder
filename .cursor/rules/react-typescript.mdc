@@ -1,0 +1,172 @@
+---
+description: React and TypeScript coding standards
+globs: "**/*.{tsx,ts,jsx}"
+alwaysApply: false
+---
+
+# React & TypeScript Standards
+
+## Linting & Formatting
+
+This project uses ESLint and Prettier for code style:
+- **Prettier config:** `.prettierrc` (root)
+- **ESLint config:** `.eslintrc.json` (root, extends `@powerhome/eslint-config-nitro`)
+- Components may have their own `.eslintrc.json` to override rules
+
+**After making changes, ALWAYS run both Prettier and lint from the component directory:**
+```bash
+# Step 1: Auto-format with Prettier (fixes most style issues)
+npx prettier --write app/javascript/YourAppName/
+
+# Step 2: Verify everything passes (this is what CI runs)
+yarn lint
+```
+
+CI runs `yarn lint` which executes **both** `eslint` AND `prettier -c`. Code that passes ESLint but fails Prettier will still fail CI. Always run both.
+
+## Prettier Formatting Rules (REQUIRED)
+
+The `.prettierrc` at the repo root enforces these rules. Agents should be aware of them when writing code to minimize Prettier diffs:
+
+| Rule | Setting | What it means |
+|---|---|---|
+| `arrowParens` | `"avoid"` | Single-param arrows: `item =>` NOT `(item) =>` |
+| `semi` | `false` | No semicolons at end of statements |
+| `trailingComma` | `"es5"` | Trailing commas in arrays/objects/params |
+| `singleQuote` | `false` | Use double quotes `"text"` not single `'text'` |
+| `tabWidth` | `2` | 2-space indentation |
+| `bracketSameLine` | `false` | Closing `>` on its own line for multi-line JSX |
+
+```typescript
+// CORRECT — matches Prettier config
+const handleClick = event => {
+  setState(prev => ({ ...prev, clicked: true }))
+}
+
+items.map(item => <Card key={item.id} padding="md" />)
+
+// WRONG — Prettier will reformat these
+const handleClick = (event) => {   // parens on single param
+  setState((prev) => ({ ...prev, clicked: true }));  // parens + semicolons
+}
+
+items.map((item) => <Card key={item.id} padding="md" />)  // parens
+```
+
+**Line length:** Prettier wraps at 80 characters by default. Short JSX elements stay on one line; long ones get expanded to multi-line. Don't fight Prettier on line wrapping — just run `npx prettier --write` and let it decide.
+
+## JSX Prop Ordering (REQUIRED)
+
+This project enforces `react/jsx-sort-props` — **all JSX props must be in alphabetical order**. CI will fail with errors if props are not sorted.
+
+```typescript
+// CORRECT — props sorted alphabetically
+<Flex align="center" gap="md" orientation="row" width="100%">
+<Title bold color="default" size={4}>
+<Button onClick={handleClick} size="md" text="Submit" variant="primary" />
+
+// WRONG — props not sorted (will fail CI lint)
+<Flex orientation="row" gap="md" align="center" width="100%">
+<Title size={4} bold color="default">
+```
+
+**Rule:** Always write props in A-Z order. This applies to every JSX element — Playbook components, HTML elements, and custom components alike.
+
+## One Component Per File (REQUIRED)
+
+ESLint enforces `react/no-multi-comp` — **each `.tsx` file must export only one React component**. Helper components must be extracted into their own files.
+
+```typescript
+// WRONG — two components in one file (will trigger no-multi-comp)
+const LabelValue = ({ label, value }: LabelValueProps) => (...)
+const ProjectSummary = ({ data }: ProjectSummaryProps) => (...)
+export default ProjectSummary
+
+// CORRECT — extract LabelValue into LabelValue.tsx
+// LabelValue.tsx
+export const LabelValue = ({ label, value }: LabelValueProps) => (...)
+
+// ProjectSummary.tsx
+import { LabelValue } from "./LabelValue"
+export const ProjectSummary = ({ data }: ProjectSummaryProps) => (...)
+```
+
+## No Console Statements
+
+ESLint enforces `no-console` — **never use `console.log`, `console.warn`, or `console.error`**. Use proper error handling or remove debug logging before committing.
+
+## No Empty Functions
+
+ESLint enforces `@typescript-eslint/no-empty-function` — **empty function bodies are errors**. For placeholder callbacks, add an eslint-disable comment:
+
+```typescript
+// CORRECT — explicit disable for intentional no-op
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+const noop = () => {}
+
+// WRONG — empty function without disable
+const noop = () => {}
+```
+
+## React Component Patterns
+
+```typescript
+// GOOD - Functional component with proper typing
+type MyComponentProps = {
+  count: number
+  onAction?: () => void
+  title: string
+}
+
+const MyComponent = ({ count, onAction, title }: MyComponentProps) => {
+  return <div>{title}: {count}</div>
+}
+
+export default MyComponent
+```
+
+- Use **functional components** and type props directly in the function signature
+- Define props as TypeScript types (not interfaces for simple cases)
+- Use **named exports** for components
+
+## Playbook UI Imports
+
+Always import UI components from `playbook-ui`:
+```typescript
+import { Button, Card, Flex, FlexItem, Title, Body } from "playbook-ui"
+```
+
+Do NOT create custom UI primitives when Playbook has equivalents.
+
+## Path Aliases
+
+Use these configured aliases:
+- `@powerhome/graphql/*` - GraphQL utilities
+- `@powerhome/hooks/*` - Shared React hooks
+- `@powerhome/kits/*` - Shared components
+
+## Example Component
+
+```typescript
+import React, { useState } from "react"
+import { Flex, FlexItem, Button } from "playbook-ui"
+
+type CounterProps = {
+  initialValue: number
+}
+
+const Counter = ({ initialValue }: CounterProps) => {
+  const [count, setCount] = useState(initialValue)
+
+  return (
+    <Flex align="center" gap="md">
+      <FlexItem>Count: {count}</FlexItem>
+      <FlexItem>
+        <Button onClick={() => setCount(c => c + 1)} text="Increment" />
+      </FlexItem>
+    </Flex>
+  )
+}
+
+export default Counter
+```
