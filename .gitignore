@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# figma-fetch runtime output
+output/
+
+# Environment / secrets
+.env
+.env.*
