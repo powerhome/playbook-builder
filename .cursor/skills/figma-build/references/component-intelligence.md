@@ -12,7 +12,7 @@ How playbook-builder and Figma MCP process Figma designs, what the spec can and 
 2. **Fetch** → Figma REST API: node tree + variables (parallel)
 3. **Process tree** → each node dispatched by type → `SpecNode` tree
 4. **Optimize** → strip Nitro chrome, flatten wrappers, group footers, sort props
-5. **Write** → `output/<nodeId>-spec.json` (see SKILL.md Step 3 for the exact path based on install context)
+5. **Write** → JSON spec to stdout (caller redirects to file; see SKILL.md Step 3)
 
 ### Node classification
 

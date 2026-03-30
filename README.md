@@ -66,25 +66,28 @@ npm run test:package
 
 ### Test against Figma (integration)
 
-With `FIGMA_TOKEN` set, run `playbook-builder` with a real design URL and confirm JSON under `output/` (or `--stdout`).
+With `FIGMA_TOKEN` set, run `playbook-builder` with a real design URL:
+
+```bash
+playbook-builder --url "https://www.figma.com/design/abc123/MyFile?node-id=358-93336" > spec.json
+```
 
 ## Usage
 
-```bash
-# Produce a compact page spec → auto-saved to output/
-playbook-builder --url "https://www.figma.com/design/abc123/MyFile?node-id=358-93336"
+Output is written to stdout. Redirect to save to a file:
 
-# Custom output filename (must be within output/)
-playbook-builder --url "https://..." --output output/my-spec.json
+```bash
+# Produce a compact page spec
+playbook-builder --url "https://www.figma.com/design/abc123/MyFile?node-id=358-93336" > spec.json
 
 # Output raw REST API JSON (for inspection / debugging)
-playbook-builder --url "https://..." --raw
+playbook-builder --url "https://..." --raw > raw.json
 
-# Print to terminal instead of file (piping, debugging)
-playbook-builder --url "https://..." --stdout
+# Pipe to jq for inspection
+playbook-builder --url "https://..." | jq '.layout.children[0]'
 
 # Limit traversal depth
-playbook-builder --url "https://..." --depth 5
+playbook-builder --url "https://..." --depth 5 > spec.json
 ```
 
 ## Flags
@@ -92,10 +95,8 @@ playbook-builder --url "https://..." --depth 5
 | Flag              | Required | Description                                         |
 |-------------------|----------|-----------------------------------------------------|
 | `--url`           | Yes      | Figma design URL with `node-id` query param         |
-| `--output`, `-o`  | No       | Output file path (default: auto in `output/` dir)   |
 | `--target`        | No       | `react` (default) or `rails`                        |
 | `--raw`           | No       | Output the raw Figma REST API JSON                  |
-| `--stdout`        | No       | Print to terminal instead of writing to a file       |
 | `--no-optimize`   | No       | Skip chrome removal and node flattening              |
 | `--depth`         | No       | Limit API traversal depth (default: full tree)       |
 

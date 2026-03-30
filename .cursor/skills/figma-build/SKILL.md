@@ -60,20 +60,20 @@ echo 'export FIGMA_TOKEN="<token>"' >> ~/.zshrc
 
 Detect the install context and run accordingly:
 
-| Context | How to detect | Command | Output path |
-|---------|--------------|---------|-------------|
-| **npm package** (consuming repo) | `node_modules/@powerhome/playbook-builder/` exists | `npx playbook-builder --url "<figma-url>"` | `node_modules/@powerhome/playbook-builder/output/<nodeId>-spec.json` |
-| **Git clone** (this repo) | `src/playbook-builder.ts` exists | `source ~/.zshrc && ./bin/playbook-builder --url "<figma-url>"` | `output/<nodeId>-spec.json` |
+| Context | How to detect | Command |
+|---------|--------------|---------|
+| **npm package** (consuming repo) | `node_modules/@powerhome/playbook-builder/` exists | `npx playbook-builder --url "<figma-url>" > <nodeId>-spec.json` |
+| **Git clone** (this repo) | `src/playbook-builder.ts` exists | `source ~/.zshrc && ./bin/playbook-builder --url "<figma-url>" > <nodeId>-spec.json` |
 
 ```bash
 # npm package context (most common in consuming repos)
-npx playbook-builder --url "<figma-url>"
+npx playbook-builder --url "<figma-url>" > spec.json
 
 # Git clone context (playbook-builder repo itself)
-source ~/.zshrc && ./bin/playbook-builder --url "<figma-url>"
+source ~/.zshrc && ./bin/playbook-builder --url "<figma-url>" > spec.json
 ```
 
-The output file is always `<nodeId>-spec.json` inside the `output/` directory relative to the playbook-builder package root.
+Output is written to stdout. Redirect to a file to save the spec. Use the nodeId (with colons replaced by dashes) as the filename, e.g. `358-93336-spec.json`.
 
 **CRITICAL — playbook-builder MUST succeed. If it fails for ANY reason, STOP immediately.** Do NOT proceed to Step 4 or beyond. Do NOT attempt to build from MCP data alone, guesswork, or memory. The spec is the single source of truth — without it, the build will be inaccurate.
 
@@ -88,7 +88,7 @@ The output file is always `<nodeId>-spec.json` inside the `output/` directory re
 | `FIGMA_TOKEN` not set | Token not in environment | "The Figma API token is not set in your environment. Please go back to Step 2." |
 | Any other non-zero exit code | Unknown | "playbook-builder failed unexpectedly. Share the error output so we can diagnose it." |
 
-**After the failure is resolved and playbook-builder succeeds,** resume from this step. Verify the output file exists and contains valid JSON before continuing.
+**After the failure is resolved and playbook-builder succeeds,** resume from this step. Verify the output contains valid JSON before continuing.
 
 ### Step 3b: MCP cross-validation (mandatory)
 

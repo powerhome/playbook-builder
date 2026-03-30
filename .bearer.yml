@@ -1,4 +1,0 @@
-scanner:
-  skip:
-    - javascript_lang_logger_leak
-    - javascript_lang_non_literal_fs_filename

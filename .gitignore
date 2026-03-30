@@ -7,9 +7,6 @@ node_modules/
 # Build output
 dist/
 
-# Runtime output
-output/
-
 # Environment / secrets
 .env
 .env.*
