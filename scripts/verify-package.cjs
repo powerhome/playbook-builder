@@ -28,7 +28,7 @@ function main() {
     process.exit(1)
   }
 
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "figma-fetch-pkg-test-"))
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "playbook-builder-pkg-test-"))
   try {
     console.error("[verify-package] npm install from tarball in", tmp)
     execSync(`npm install "${tarballPath}"`, { cwd: tmp, stdio: "inherit" })
@@ -36,7 +36,7 @@ function main() {
     // 1) Missing --url → usage() → exit 1
     const envNoToken = { ...process.env }
     delete envNoToken.FIGMA_TOKEN
-    const noUrl = spawnSync("npx", ["figma-fetch"], {
+    const noUrl = spawnSync("npx", ["playbook-builder"], {
       cwd: tmp,
       encoding: "utf8",
       env: envNoToken,
@@ -45,7 +45,7 @@ function main() {
       console.error("Expected exit code 1 when --url is missing, got", noUrl.status)
       process.exit(1)
     }
-    if (!/Usage:\s*figma-fetch/i.test(noUrl.stderr) && !/Usage:/i.test(noUrl.stderr)) {
+    if (!/Usage:\s*playbook-builder/i.test(noUrl.stderr) && !/Usage:/i.test(noUrl.stderr)) {
       console.error("Expected usage text on stderr:", noUrl.stderr)
       process.exit(1)
     }
@@ -54,7 +54,7 @@ function main() {
     // 2) With --url but no token → clear error
     const noToken = spawnSync(
       "npx",
-      ["figma-fetch", "--url", "https://www.figma.com/design/abc123/X?node-id=1-2"],
+      ["playbook-builder", "--url", "https://www.figma.com/design/abc123/X?node-id=1-2"],
       { cwd: tmp, encoding: "utf8", env: envNoToken }
     )
     if (noToken.status !== 1) {

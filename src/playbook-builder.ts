@@ -27,10 +27,10 @@ function parseArgs(argv: string[]) {
 
 function usage(): never {
   const message =
-    "Usage: figma-fetch --url <figma-url> [options]\n\n" +
+    "Usage: playbook-builder --url <figma-url> [options]\n\n" +
     "Flags:\n" +
     "  --url           Figma design URL (required)\n" +
-    "  --output, -o    Output file path (default: auto in figma-fetch/output/)\n" +
+    "  --output, -o    Output file path (default: auto in output/)\n" +
     "  --target        Output target: react (default) or rails\n" +
     "  --raw           Output raw Figma REST API JSON instead of processed spec\n" +
     "  --stdout        Print to terminal instead of writing to a file\n" +
@@ -61,7 +61,7 @@ function autoOutputPath(nodeId: string, raw: boolean): string {
 function resolvedOutputPath(outPath: string): string {
   const resolved = path.resolve(outPath)
   if (!resolved.startsWith(OUTPUT_DIR)) {
-    throw new Error("Output path must be within the figma-fetch/output/ directory")
+    throw new Error("Output path must be within the output/ directory")
   }
   return resolved
 }

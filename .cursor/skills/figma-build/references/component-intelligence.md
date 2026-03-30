@@ -1,10 +1,10 @@
 # Component Intelligence
 
-How figma-fetch and Figma MCP process Figma designs, what the spec can and can't provide, and component-specific patterns agents must recognize during builds. Read alongside [SKILL.md](../SKILL.md), [REFERENCE.md](./REFERENCE.md), and your framework's rule file ([react-build-rules.md](./react-build-rules.md) or [erb-build-rules.md](./erb-build-rules.md)).
+How playbook-builder and Figma MCP process Figma designs, what the spec can and can't provide, and component-specific patterns agents must recognize during builds. Read alongside [SKILL.md](../SKILL.md), [REFERENCE.md](./REFERENCE.md), and your framework's rule file ([react-build-rules.md](./react-build-rules.md) or [erb-build-rules.md](./erb-build-rules.md)).
 
 ---
 
-## figma-fetch processor
+## playbook-builder processor
 
 ### Pipeline
 
@@ -12,7 +12,7 @@ How figma-fetch and Figma MCP process Figma designs, what the spec can and can't
 2. **Fetch** → Figma REST API: node tree + variables (parallel)
 3. **Process tree** → each node dispatched by type → `SpecNode` tree
 4. **Optimize** → strip Nitro chrome, flatten wrappers, group footers, sort props
-5. **Write** → `<figma-fetch-root>/output/<nodeId>-spec.json` (see SKILL.md Step 3 for the exact path based on install context)
+5. **Write** → `output/<nodeId>-spec.json` (see SKILL.md Step 3 for the exact path based on install context)
 
 ### Node classification
 
@@ -96,7 +96,7 @@ Agents must supply these manually:
 | `DateRangeInline` | Actual Date objects | Spec `text` is display text only. Both `startDate`/`endDate` (React) or `start_date`/`end_date` (ERB) must be non-nil Date objects — nil crashes the Ruby component. For open-ended ranges showing "→ Current", use `Date.current` as end_date or display as `Body` text |
 | Form handlers | Event handlers, state | Wire up per framework rules |
 
-### Components figma-fetch frequently drops
+### Components playbook-builder frequently drops
 
 Some Figma instances don't match the Playbook name set and fall through to generic Flex/Card — or are stripped entirely during optimization. **Always cross-check with MCP `get_design_context`** on sections likely to contain these:
 
@@ -153,7 +153,7 @@ The spec emits props using Playbook's API names, but agents sometimes substitute
 | Raw hex colors | `#0056CF` instead of `color="link"` | Map using spec's resolved tokens |
 | Placeholder text | "Nav Item" instead of real labels | Use spec `text` fields as source of truth |
 | Absolute positioning | Pixel coordinates, not flex layouts | Use spec's `orientation`/`flex`/`gap` props |
-| No design token resolution | CSS variables, not Playbook tokens | Rely on figma-fetch for token mapping |
+| No design token resolution | CSS variables, not Playbook tokens | Rely on playbook-builder for token mapping |
 
 ---
 
@@ -245,7 +245,7 @@ Always pair with `margin="auto"` for centering.
 
 ### Page-root and full-width bar maxWidth anti-pattern
 
-The spec's outermost node and full-width bars (headers, footers) often represent the full Nitro content area (1220px after sidebar removal). figma-fetch maps this to `maxWidth: "xl"` (1200px), but this **constrains the element to 1200px** — leaving a visible gap between it and the Nitro sidebar / page edges.
+The spec's outermost node and full-width bars (headers, footers) often represent the full Nitro content area (1220px after sidebar removal). playbook-builder maps this to `maxWidth: "xl"` (1200px), but this **constrains the element to 1200px** — leaving a visible gap between it and the Nitro sidebar / page edges.
 
 **Rule:** Any element that should be **edge-to-edge** in the Nitro shell must **never** have `maxWidth` or `margin="auto"`. This includes:
 

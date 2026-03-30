@@ -1,6 +1,6 @@
 ---
 name: figma-build
-description: Build a React or ERB page from a Figma design URL. Fetches design data via figma-fetch CLI, reads the optimized spec as the single source of truth, and generates modular Playbook components. Works with existing components (primary) or new ones (secondary). Use when the user provides a Figma URL and asks to build, create, or implement a page or component.
+description: Build a React or ERB page from a Figma design URL. Fetches design data via playbook-builder CLI, reads the optimized spec as the single source of truth, and generates modular Playbook components. Works with existing components (primary) or new ones (secondary). Use when the user provides a Figma URL and asks to build, create, or implement a page or component.
 ---
 
 # Figma Build
@@ -62,20 +62,20 @@ Detect the install context and run accordingly:
 
 | Context | How to detect | Command | Output path |
 |---------|--------------|---------|-------------|
-| **npm package** (consuming repo) | `node_modules/figma-fetch/` exists | `npx figma-fetch --url "<figma-url>"` | `node_modules/figma-fetch/output/<nodeId>-spec.json` |
-| **Git clone** (this repo) | `figma-fetch/src/` exists | `source ~/.zshrc && ./figma-fetch/bin/figma-fetch --url "<figma-url>"` | `figma-fetch/output/<nodeId>-spec.json` |
+| **npm package** (consuming repo) | `node_modules/@powerhome/playbook-builder/` exists | `npx playbook-builder --url "<figma-url>"` | `node_modules/@powerhome/playbook-builder/output/<nodeId>-spec.json` |
+| **Git clone** (this repo) | `src/playbook-builder.ts` exists | `source ~/.zshrc && ./bin/playbook-builder --url "<figma-url>"` | `output/<nodeId>-spec.json` |
 
 ```bash
 # npm package context (most common in consuming repos)
-npx figma-fetch --url "<figma-url>"
+npx playbook-builder --url "<figma-url>"
 
 # Git clone context (playbook-builder repo itself)
-source ~/.zshrc && ./figma-fetch/bin/figma-fetch --url "<figma-url>"
+source ~/.zshrc && ./bin/playbook-builder --url "<figma-url>"
 ```
 
-The output file is always `<nodeId>-spec.json` inside the `output/` directory relative to the figma-fetch package root.
+The output file is always `<nodeId>-spec.json` inside the `output/` directory relative to the playbook-builder package root.
 
-**CRITICAL — figma-fetch MUST succeed. If it fails for ANY reason, STOP immediately.** Do NOT proceed to Step 4 or beyond. Do NOT attempt to build from MCP data alone, guesswork, or memory. The spec is the single source of truth — without it, the build will be inaccurate.
+**CRITICAL — playbook-builder MUST succeed. If it fails for ANY reason, STOP immediately.** Do NOT proceed to Step 4 or beyond. Do NOT attempt to build from MCP data alone, guesswork, or memory. The spec is the single source of truth — without it, the build will be inaccurate.
 
 **Diagnose the failure and explain it to the user:**
 
@@ -84,15 +84,15 @@ The output file is always `<nodeId>-spec.json` inside the `output/` directory re
 | 403 Forbidden | Token expired or revoked | "Your Figma API token is no longer valid. Please generate a new one at https://www.figma.com/developers → Personal access tokens." |
 | 404 Not Found | Invalid file key or node ID | "The Figma URL doesn't point to a valid design node. Please verify the URL and ensure the `node-id` parameter is present." |
 | Network / connection error | No internet or Figma API outage | "Unable to reach the Figma API. Please check your network connection and try again." |
-| Empty or malformed output | figma-fetch bug or missing dependencies | "figma-fetch produced invalid output. If installed as a package, try `npm ls figma-fetch` to verify it's installed. If running from a git clone, try `cd figma-fetch && npm install && cd ..` then retry." |
+| Empty or malformed output | playbook-builder bug or missing dependencies | "playbook-builder produced invalid output. If installed as a package, try `npm ls @powerhome/playbook-builder` to verify it's installed. If running from a git clone, try `npm install` then retry." |
 | `FIGMA_TOKEN` not set | Token not in environment | "The Figma API token is not set in your environment. Please go back to Step 2." |
-| Any other non-zero exit code | Unknown | "figma-fetch failed unexpectedly. Share the error output so we can diagnose it." |
+| Any other non-zero exit code | Unknown | "playbook-builder failed unexpectedly. Share the error output so we can diagnose it." |
 
-**After the failure is resolved and figma-fetch succeeds,** resume from this step. Verify the output file exists and contains valid JSON before continuing.
+**After the failure is resolved and playbook-builder succeeds,** resume from this step. Verify the output file exists and contains valid JSON before continuing.
 
 ### Step 3b: MCP cross-validation (mandatory)
 
-Run MCP checks **immediately after fetching the spec** — do NOT defer to post-build. These catch components figma-fetch drops (Avatar, Icon, etc.) and layout details the spec can't fully capture.
+Run MCP checks **immediately after fetching the spec** — do NOT defer to post-build. These catch components playbook-builder drops (Avatar, Icon, etc.) and layout details the spec can't fully capture.
 
 1. **`get_screenshot`** — capture the full node for visual reference during build
 2. **`get_design_context`** on 3–5 major sub-nodes (header, main content area, activity/footer, any section with avatars or icons). Compare MCP component names against spec components. **If MCP shows a component the spec omits** (e.g., Avatar, Icon), note it for manual addition in Step 6.
@@ -191,7 +191,7 @@ These files contain the detailed rules, patterns, and wiring instructions for yo
 
 | File | What it covers | When to consult |
 |------|---------------|-----------------|
-| [component-intelligence.md](./references/component-intelligence.md) | figma-fetch behavior, MCP guide, detached tables, backgrounds, Nav variants, synthetic wrappers, maxWidth | When a spec node looks ambiguous, when building tables/navs/backgrounds, during MCP cross-validation |
+| [component-intelligence.md](./references/component-intelligence.md) | playbook-builder behavior, MCP guide, detached tables, backgrounds, Nav variants, synthetic wrappers, maxWidth | When a spec node looks ambiguous, when building tables/navs/backgrounds, during MCP cross-validation |
 | [react-build-rules.md](./references/react-build-rules.md) | Component rules, htmlOptions skip list, explicit types, lint config, form state, wiring, troubleshooting | **React builds:** wiring entrypoints, form state, event handlers, lint/format |
 | [erb-build-rules.md](./references/erb-build-rules.md) | snake_case conversion, sub-component naming, Select/form patterns, mock data, Turbo/Stimulus, wiring, troubleshooting | **ERB builds:** wiring controllers/routes, component naming, mock data, form patterns |
 | [REFERENCE.md](./references/REFERENCE.md) | Spec field reference, component mapping table, shared troubleshooting | Quick lookups: "what does this spec field mean?", "what's the ERB name for X?" |
@@ -269,7 +269,7 @@ Follow [setup-component.md](./references/setup-component.md) to create and wire 
 ## References
 
 - [REFERENCE.md](./references/REFERENCE.md) — Spec field reference, component mapping, troubleshooting
-- [component-intelligence.md](./references/component-intelligence.md) — figma-fetch processor behavior, MCP guide, component recognition patterns (detached tables, backgrounds, Nav variants, wrappers, maxWidth)
+- [component-intelligence.md](./references/component-intelligence.md) — playbook-builder processor behavior, MCP guide, component recognition patterns (detached tables, backgrounds, Nav variants, wrappers, maxWidth)
 - [react-build-rules.md](./references/react-build-rules.md) — React/TypeScript: component rules, lint, explicit types, form state, wiring, patterns, troubleshooting
 - [erb-build-rules.md](./references/erb-build-rules.md) — Rails ERB: component rules, snake_case, Select, Turbo/Stimulus forms, wiring, patterns, troubleshooting
 - [setup-component.md](./references/setup-component.md) — New component creation (generator, Nitro wiring, CI checklists)

@@ -1,6 +1,6 @@
 # Figma Build — Reference
 
-Shared lookup tables for both React and ERB builds. For framework-specific patterns, see [react-build-rules.md](./react-build-rules.md) or [erb-build-rules.md](./erb-build-rules.md). For figma-fetch processor behavior, MCP guidance, and component recognition patterns, see [component-intelligence.md](./component-intelligence.md).
+Shared lookup tables for both React and ERB builds. For framework-specific patterns, see [react-build-rules.md](./react-build-rules.md) or [erb-build-rules.md](./erb-build-rules.md). For playbook-builder processor behavior, MCP guidance, and component recognition patterns, see [component-intelligence.md](./component-intelligence.md).
 
 ---
 
@@ -75,7 +75,7 @@ Shared lookup tables for both React and ERB builds. For framework-specific patte
 | App won't boot | `bundle install` not run | Run from repo root |
 | Milano stale | Changes not pushed | Commit + push |
 | Extra padding | Nitro shell padding | Add CSS override ([SKILL.md](../SKILL.md) Step 7) |
-| `figma-fetch` fails | `FIGMA_TOKEN` not set | See [SKILL.md](../SKILL.md) Step 2 |
+| `playbook-builder` fails | `FIGMA_TOKEN` not set | See [SKILL.md](../SKILL.md) Step 2 |
 | CI `yarn lint` fails on Prettier | Prettier not run | Run `npx prettier --write` first |
 | `(item) =>` rewritten to `item =>` | `.prettierrc` `arrowParens: "avoid"` | Use `item =>` for single params |
 | CI `erb_lint` fails on trailing commas | RuboCop rule | Add trailing commas to multiline hashes |

@@ -7,7 +7,7 @@ node_modules/
 # Build output
 dist/
 
-# figma-fetch runtime output
+# Runtime output
 output/
 
 # Environment / secrets

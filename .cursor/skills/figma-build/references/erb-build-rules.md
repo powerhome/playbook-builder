@@ -1,6 +1,6 @@
 # ERB Build Rules
 
-Rules, patterns, and wiring for building Figma designs as Rails ERB views in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (figma-fetch behavior, MCP guide, component recognition).
+Rules, patterns, and wiring for building Figma designs as Rails ERB views in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (playbook-builder behavior, MCP guide, component recognition).
 
 ---
 

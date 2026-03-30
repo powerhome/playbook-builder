@@ -1,6 +1,6 @@
 # React Build Rules
 
-Rules, patterns, and wiring for building Figma designs as React/TypeScript components in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (figma-fetch behavior, MCP guide, component recognition).
+Rules, patterns, and wiring for building Figma designs as React/TypeScript components in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (playbook-builder behavior, MCP guide, component recognition).
 
 ---
 
@@ -30,7 +30,7 @@ These components pass unknown props to the DOM, causing React warnings. **Never 
 
 **Every content column must be checked for maxWidth.** The spec now emits `dimensions` on all layout nodes (not just FIXED), so you always have width data.
 
-**When the spec includes `maxWidth`:** Use it directly — figma-fetch already mapped the effective width to a token.
+**When the spec includes `maxWidth`:** Use it directly — playbook-builder already mapped the effective width to a token.
 
 **When the spec omits `maxWidth`:** Check `dimensions.width` on the content column. If it exceeds ~1240px and the column contains form fields, the page needs a manual maxWidth constraint. See [component-intelligence.md](./component-intelligence.md) → "Form pages without maxWidth" for the heuristic table.
 
