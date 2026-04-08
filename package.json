@@ -1,6 +1,6 @@
 {
   "name": "@powerhome/playbook-builder",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fetch Figma designs via REST API and produce compact Playbook page specs",
   "license": "UNLICENSED",
   "repository": {
