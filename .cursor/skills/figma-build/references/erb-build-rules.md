@@ -1,6 +1,6 @@
 # ERB Build Rules
 
-Rules, patterns, and wiring for building Figma designs as Rails ERB views in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (playbook-builder behavior, MCP guide, component recognition).
+Rules and patterns for translating Figma designs into view-layer ERB partials in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (playbook-builder behavior, MCP guide, component recognition).
 
 ---
 
@@ -21,25 +21,31 @@ Convert all multi-word props from the spec:
 | `textTransform` | `text_transform` |
 | `borderRadius` | `border_radius` |
 
-### 2. `html_options` goes INSIDE the `props:` hash
+### 2. `html_options` — avoid; use Playbook props instead
 
-**Never** pass `html_options:` as a separate keyword — it raises `unknown keyword: :html_options`.
+**Always prefer Playbook props over `html_options`.** Use `background: "light"` not `html_options: { style: "background-color: ..." }`. Use spacing tokens, not pixel values. Use color props, not hex values.
 
-**Always use a CSS string for `style:`** — never a Ruby hash with symbol keys. Multi-word CSS properties like `background-color`, `min-width`, `border-right` cannot be expressed as Ruby symbols (`background_color` produces invalid CSS).
+If `html_options` is absolutely unavoidable (no Playbook prop exists), add a comment explaining why. When using it:
+
+- `html_options` goes **inside** the `props:` hash — never as a separate keyword (raises `unknown keyword: :html_options`)
+- **Always use a CSS string for `style:`** — never a Ruby hash with symbol keys
 
 ```erb
-<%# CORRECT — string format for style %>
+<%# CORRECT — Playbook props for styling %>
+<%= pb_rails("flex", props: { orientation: "column", background: "light" }) %>
+
+<%# ACCEPTABLE — html_options only when no Playbook prop exists, with justification %>
 <%= pb_rails("flex", props: {
   orientation: "column",
-  html_options: { style: "background: rgba(193,205,214,0.1); min-height: 100vh;" },
+  html_options: { data: { controller: "toggle" } },
 }) %>
 
 <%# WRONG — html_options as separate keyword (raises error) %>
 <%= pb_rails("flex", props: { orientation: "column" }, html_options: { style: "..." }) %>
 
-<%# WRONG — Ruby symbol keys produce invalid CSS property names %>
+<%# WRONG — html_options for styling that Playbook props can handle %>
 <%= pb_rails("flex", props: {
-  html_options: { style: { background_color: "white", min_width: "200px" } },
+  html_options: { style: "background-color: white;" },
 }) %>
 ```
 
@@ -152,25 +158,26 @@ Tokens: `"sm"` (~480px), `"md"` (~720px), `"lg"` (~960px). Add `margin: "auto"` 
 
 ---
 
-## Wiring files
+## Minimal rendering controller
 
-**CRITICAL: Inspect existing files first.** Most components already have routes and controllers. Add to them — never overwrite.
+**Inspect existing files first.** Most components already have routes and controllers. If they exist, add to them — never overwrite. If missing, create the minimum needed to display the page.
+
+This is **not application architecture.** It is the minimum to render the view. Data loading, model queries, and form processing are the developer's responsibility.
 
 | File | If exists | If missing |
 |------|-----------|------------|
-| `config/routes.rb` | **Add** route to existing routes block | Add route block |
-| `app/controllers/<ns>/<page>_controller.rb` | Unlikely to exist — create new | Create new |
+| `config/routes.rb` | **Add** route to existing routes block | Add `get` route |
+| `app/controllers/<ns>/<page>_controller.rb` | Use it — do not modify | Create with empty `index` action |
 | `app/views/<ns>/<page>/index.html.erb` | Unlikely to exist — create new | Create new |
 | `app/views/<ns>/<page>/_header.html.erb` | Create new partial | Create new partial |
 
-**Controller pattern:**
+**Controller pattern (empty — no data loading):**
 
 ```ruby
 module MyComponent
   class PagesController < ApplicationController
-    def index
-      @territory_options = Territory.active.order(:name)
-    end
+    # TODO: Add data loading (model queries, API calls) here
+    def index; end
   end
 end
 ```
@@ -253,42 +260,18 @@ end
 
 ---
 
-## Form interactivity
+## Client-side interactivity (Stimulus)
 
-ERB forms use Rails conventions: `form_with` for submissions, Turbo for partial updates, Stimulus for client-side behavior.
+Use Stimulus for UI interactions that don't need a server round-trip: show/hide panels, toggle sections, switch tabs, client-side validation.
 
-### Simple CRUD (`form_with`)
-
-```erb
-<%= form_with(model: @record, url: records_path) do |f| %>
-  <%= pb_rails("text_input", props: {
-    label: "Name",
-    name: "record[name]",
-    value: @record.name,
-    required: true,
-    required_indicator: true,
-  }) %>
-  <%= pb_rails("button", props: { text: "Submit", variant: "primary", type: "submit" }) %>
-<% end %>
-```
-
-### Turbo Frames (partial page updates)
-
-Wrap sections that update independently:
+Form submission (`form_with`), Turbo Frames, and server-driven interactions are the developer's responsibility. Use TODO comments where these belong:
 
 ```erb
-<%= turbo_frame_tag :filters do %>
-  <%# filter controls that reload without full page refresh %>
-<% end %>
+<%# TODO: Wrap in form_with when controller action is ready %>
+<%# TODO: Wrap in turbo_frame_tag when controller action is ready %>
 ```
 
-Controller: `layout -> { false if turbo_frame_request? }` for frame responses.
-
-### Stimulus (client-side behavior)
-
-For interactions that don't need a server round-trip (show/hide, toggle, validate).
-
-**Wiring files:**
+### Stimulus wiring
 
 | File | Purpose |
 |------|---------|
@@ -320,7 +303,8 @@ bundle exec erb_lint app/views/your_controller/
 Key rules:
 - **Trailing commas** in multiline hashes (RuboCop `TrailingCommaInHashLiteral`)
 - **snake_case** for all prop names
-- **`html_options` inside `props:`** — never as a separate keyword
+- **Playbook props only for styling** — no inline styles, no hex values, no pixel values
+- **`html_options` inside `props:`** — if used at all, never as a separate keyword
 
 ---
 

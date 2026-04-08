@@ -7,8 +7,20 @@
 
 set -euo pipefail
 
-# npm copies this script into node_modules/.bin/ — parent of bin is not the package root.
-BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Resolve the real path of this script, following symlinks (handles global npm installs
+# where the bin is symlinked from e.g. .../nodejs/22.15.1/bin/ → .../node_modules/@powerhome/...).
+SELF="$0"
+if [ -L "$SELF" ]; then
+  # readlink -f is not available on all macOS versions; loop to resolve
+  while [ -L "$SELF" ]; do
+    DIR="$(cd "$(dirname "$SELF")" && pwd)"
+    SELF="$(readlink "$SELF")"
+    # Handle relative symlink targets
+    [[ "$SELF" != /* ]] && SELF="$DIR/$SELF"
+  done
+fi
+
+BIN_DIR="$(cd "$(dirname "$SELF")" && pwd)"
 if [ "$(basename "$BIN_DIR")" = ".bin" ]; then
   SCRIPT_DIR="$(cd "$BIN_DIR/../@powerhome/playbook-builder" && pwd)"
 else
