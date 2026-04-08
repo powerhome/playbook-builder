@@ -16,6 +16,7 @@
   "files": [
     "bin",
     "dist",
+    ".cursor",
     "README.md"
   ],
   "scripts": {

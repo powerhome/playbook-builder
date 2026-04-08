@@ -1,6 +1,6 @@
 # React Build Rules
 
-Rules, patterns, and wiring for building Figma designs as React/TypeScript components in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (playbook-builder behavior, MCP guide, component recognition).
+Rules and patterns for translating Figma designs into React/TypeScript view-layer components in Nitro. Read alongside [SKILL.md](../SKILL.md) (the process orchestrator), [REFERENCE.md](./REFERENCE.md) (shared lookups), and [component-intelligence.md](./component-intelligence.md) (playbook-builder behavior, MCP guide, component recognition).
 
 ---
 
@@ -16,9 +16,11 @@ Flatpickr needs a DOM id. Without it: `document.querySelector(...) is null` — 
 <DatePicker onChange={handleDate} pickerId="purchase-date" />
 ```
 
-### 2. `htmlOptions` skip list
+### 2. `htmlOptions` — avoid entirely, never on form components
 
-These components pass unknown props to the DOM, causing React warnings. **Never apply `htmlOptions` to:**
+**Always prefer Playbook props over `htmlOptions`.** Do not use `htmlOptions` for styling when a Playbook prop exists (e.g., use `background="light"` not `htmlOptions={{ style: { backgroundColor: "..." } }}`).
+
+If `htmlOptions` is absolutely unavoidable (no Playbook prop exists), add a comment explaining why. **Never apply `htmlOptions` to these components** — they pass unknown props to the DOM, causing React warnings:
 
 | Component | Use instead |
 |-----------|------------|
@@ -144,26 +146,20 @@ const noop = () => {}
 
 ---
 
-## Wiring files
+## Verify wiring
 
-**CRITICAL: Inspect existing files first.** Most components already have `index.ts`, entrypoints, and routes. Add to them — never overwrite.
+**Do not generate wiring files.** The component's entrypoints, barrel exports, routes, controllers, and views are the developer's responsibility — they either already exist (Path A) or are created by nitro-web's generator (Path B).
 
-| File | If exists | If missing |
-|------|-----------|------------|
-| `app/javascript/entrypoints/<component>/index.ts` | **Add** `nitroReact.register({ MyApp })` to existing registrations | Create with full entrypoint pattern |
-| `app/javascript/index.ts` (or `index.tsx`) | **Add** `export { MyApp } from "./MyApp"` to existing exports | Create barrel file |
-| `config/routes.rb` | **Add** route to existing routes block | Add route block |
-| `app/views/<ns>/<controller>/index.html.erb` | Unlikely to exist — create new | Create new |
-| `app/controllers/<ns>/<controller>_controller.rb` | Unlikely to exist — create new | Create new |
+**Read-only checks:** Confirm these files exist before building. If any are missing, tell the user what's needed so they can create or generate them.
 
-**Entrypoint pattern (new file or addition to existing):**
+| File | What to check |
+|------|--------------|
+| `app/javascript/entrypoints/<component>/index.ts` | Has `nitroReact.register(...)` for the app |
+| `app/javascript/index.ts` (or `index.tsx`) | Exports the app |
+| `config/routes.rb` | Has a route for the page |
+| `app/controllers/` | Has a controller that renders the view |
 
-```typescript
-import nitroReact from "@powerhome/nitro_react/renderer"
-import { MyApp } from "@powerhome/<component>"
-
-nitroReact.register({ MyApp })
-```
+If files are missing, tell the user: "These wiring files are needed for the page to render. You can create them manually or run the component generator."
 
 ---
 
@@ -180,18 +176,19 @@ import { Card, Flex, Title, Body, TextInput, Select } from "playbook-ui"
   <Card flex="2" padding="md">{/* left column */}</Card>
   <Flex flex="3" orientation="column">{/* right column */}</Flex>
 </Flex>
-<Flex htmlOptions={{ style: { background: "rgba(193,205,214,0.1)" } }}>
+<Flex background="light">
 ```
 
 ---
 
-## Form state
+## Mock data
 
 ### Typed data contracts (`types.ts`)
 
 Every form field appears in `FormData`. Add JSDoc noting the backend endpoint.
 
 ```typescript
+/** TODO: Wire to backend endpoint */
 export type FormData = {
   itemName: string
   territory: string
@@ -208,35 +205,21 @@ Import types. Use realistic values from the Figma spec text — not "test" or "l
 ```typescript
 import { FormData, SelectOption } from "./types"
 
+// TODO: Replace with data from backend
 export const initialFormData: FormData = {
   itemName: "",
   territory: "",
   cost: "",
 }
 
+// TODO: Replace with data from backend
 export const territoryOptions: SelectOption[] = [
   { value: "east", text: "Eastern" },
   { value: "west", text: "Western" },
 ]
 ```
 
-### State management
-
-| Complexity | Pattern | When |
-|-----------|---------|------|
-| Under 5 fields | `useState<FormData>` | Simple forms |
-| 5+ fields | `useForm<FormData>` (react-hook-form) | Complex forms |
-
-```typescript
-const [formData, setFormData] = useState<FormData>(initialFormData)
-const handleChange = (field: keyof FormData, value: string) =>
-  setFormData(prev => ({ ...prev, [field]: value }))
-```
-
-### Button handlers
-
-- **Submit:** Validate, show `FixedConfirmationToast` on success
-- **Cancel:** Reset to `initialFormData` or `window.history.back()`
+State management, form submission, and button handlers are the developer's responsibility. Use `// TODO: Wire form state and submission` in component files where handlers are needed.
 
 ---
 
@@ -267,13 +250,3 @@ Key Prettier rules: `arrowParens: "avoid"` (write `item =>` not `(item) =>`), `s
 | Module not found | Missing `package.json` | Create it; run `yarn install` |
 | Page outside Nitro shell | Missing layout | Add `layout "nitro_theme/application"` to controller |
 
----
-
-## Backend connection
-
-| Concern | Pattern | Reference |
-|---------|---------|-----------|
-| Rails → React props | `render_app("App", props: @data.as_json)` | `LaborAndMaterialAdjustmentsRequestApp` |
-| GraphQL queries | `useQuery(QUERY)` → `reset(data)` into form | `talent_acquisition_comp/BonusPlanFormApp` |
-| GraphQL mutations | `useMutation(MUTATION)` on submit | `LaborAndMaterialAdjustmentsRequestApp` |
-| REST / fetch | `fetch(url, { headers: { Accept: "application/json" } })` | `business_intelligence/PerformanceBreakdown` |

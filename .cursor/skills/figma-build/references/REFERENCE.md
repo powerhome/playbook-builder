@@ -13,8 +13,8 @@ Shared lookup tables for both React and ERB builds. For framework-specific patte
 | `props.flex` | `"1"` = grows along parent axis |
 | `props.width` | `"100%"` = fills parent width |
 | `props.padding` | `"none"` overrides Playbook defaults |
-| `props.background` | Playbook token or `rgba(...)` (use `htmlOptions` for RGBA) |
-| `props.borderRadius` | Playbook token; non-uniform corners → `htmlOptions.style.borderRadius` |
+| `props.background` | Playbook token (`"white"`, `"light"`, `"dark"`, etc.) — always use the token, never hex/rgba values |
+| `props.borderRadius` | Playbook token (`"none"`, `"sm"`, `"md"`, `"lg"`) — drop non-uniform corners that can't be expressed as a token |
 | `props.maxWidth` | Playbook token (`"xs"`–`"xl"`); add `margin="auto"` when present |
 | `props.textTransform` | `"none"` on Pill/Badge |
 | `props.textAlign` | Apply ONLY on text components. On containers: **skip** (see framework rules) |
@@ -23,7 +23,7 @@ Shared lookup tables for both React and ERB builds. For framework-specific patte
 | `props.color` | Text color token — always explicit including `"default"` |
 | `props.height` | `"100%"` for cross-axis stretch |
 | `props.variant` | Playbook variant |
-| `htmlOptions` | Top-level escape-hatch (NOT inside props in spec) |
+| `htmlOptions` | Escape-hatch in spec output — evaluate whether a Playbook prop can replace it before using. Only carry forward when no Playbook equivalent exists, with a justification comment |
 | `text` | Display content from Figma |
 | `children` | Nested child nodes |
 | `dimensions` | `{ width, height, sizingH, sizingV }` — emitted on all layout containers. Use for flex ratios (FIXED siblings), maxWidth detection (FILL containers with large widths), and layout verification |
