@@ -37,6 +37,32 @@ Requires a GitHub PAT with `read:packages` scope in your user-level `~/.npmrc`:
 //npm.pkg.github.com/:_authToken=YOUR_TOKEN
 ```
 
+## Consuming these skills from nitro-web
+
+Agents ship UI in **nitro-web** (or another Nitro app), not in this repo alone.
+
+- **Spec fetch:** Install `@powerhome/playbook-builder` in the consuming repo (see above) and set `FIGMA_TOKEN` when fetching specs. Agents may run it via shell (`npx` / `playbook-builder`) or via a **plugin / marketplace** integration (for example nitro-web or plugin-config) that wraps the same package — the requirement is valid PageSpec JSON, not a particular terminal command.
+- **Cursor skills:** Copy or symlink [`.cursor/skills/figma-build/`](.cursor/skills/figma-build/) into nitro-web as `.cursor/skills/figma-build/`, or keep this repo cloned and point Cursor at that skill path so [SKILL.md](.cursor/skills/figma-build/SKILL.md) loads.
+- **Workflow vs rules:** Nitro `.cursor/rules` (Playbook, frontend) enforce tokens and components; figma-build skills define **process** (Path A/C, deltas, MCP, commits). Do not duplicate styling policy here.
+- **Where to start:** Path A vs Path C from SKILL.md; incremental edits use [extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md). Optionally summarize both links from nitro-web `AGENTS.md`.
+
+## Design-to-code pipeline (agents)
+
+Spine for turning Figma into nitro-web UI:
+
+```mermaid
+flowchart LR
+  classify[Classify PathABC]
+  inventory[Spec inventory]
+  fetch[Fetch PageSpec JSON]
+  mcp[MCP gap list]
+  patch[Minimal patch]
+  commits[Atomic commits and audit]
+  classify --> inventory --> fetch --> mcp --> patch --> commits
+```
+
+Choose Path A, B, or C → list planned `node-id`s (or skip rationale) → run `playbook-builder` (shell or plugin) → MCP gap check → smallest code patch → one commit per logical step → scoped post-build audits.
+
 ## Development setup
 
 ```bash
@@ -89,6 +115,35 @@ playbook-builder --url "https://..." | jq '.layout.children[0]'
 # Limit traversal depth
 playbook-builder --url "https://..." --depth 5 > spec.json
 ```
+
+For implementation in **nitro-web**, incremental UI changes follow Path C and **Spec inventory and atomic commits** in [extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md); greenfield page builds follow Path A Step 6 / Step 8 commit checkpoints and **Incremental delivery and git commits** in [SKILL.md](.cursor/skills/figma-build/SKILL.md).
+
+### Handing off add/edit work to an agent
+
+For nitro-web work that changes UI which already exists, do not treat the full
+page design as a greenfield build. Agents should follow **Path C** in
+[SKILL.md](.cursor/skills/figma-build/SKILL.md), then use the add/edit workflow and templates in
+[extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md).
+
+Good handoffs include:
+
+- The app page, menu path, route, component pack, or feature name where the
+  change belongs
+- A Figma `node-id` for the smallest frame that contains only the new or changed
+  UI
+- Whether the change is `add_page_section`, `add_inside_feature`,
+  `edit_page_section`, `edit_feature`, or `interaction_only`
+- What should remain untouched, especially existing feature wiring, callbacks,
+  data flow, and page sections
+- Interaction notes when behavior matters: states, triggers, persistence, and
+  any existing API/callback to reuse
+
+Agents should reconcile the scoped Figma spec into the existing nitro-web code
+structure rather than mirroring Figma layer names or regenerating unrelated
+sections. Record planned spec scope up front and land **small, reviewable
+commits** so reviewers can follow progress; see **Spec inventory and atomic
+commits** in
+[extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md).
 
 ## Flags
 
