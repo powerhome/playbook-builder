@@ -1,7 +1,7 @@
 import type {
   FigmaFileResponse,
   PageSpec,
-  PageSpecBundle,
+  PageSpecBundleBody,
   PageSpecSelection,
   VariableMap,
 } from "./types"
@@ -55,7 +55,7 @@ export function buildPageSpecBundle(
   target: "react" | "rails",
   variables: VariableMap,
   noOptimize = false,
-): PageSpecBundle {
+): PageSpecBundleBody {
   const pageSelections = selections.map(selection => {
     const nodeData = response.nodes[selection.nodeId]
     if (!nodeData?.document) {
@@ -74,7 +74,7 @@ export function buildPageSpecBundle(
     } satisfies PageSpecSelection
   })
 
-  const bundle: PageSpecBundle = {
+  const bundle: PageSpecBundleBody = {
     target,
     fileKey: assertSingleFigmaFile(selections),
     selections: pageSelections,

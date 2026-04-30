@@ -1,5 +1,9 @@
 const assert = require("node:assert/strict")
+const fs = require("node:fs")
+const os = require("node:os")
+const path = require("node:path")
 
+const { finalizePageSpecBundle } = require("../dist/bundle-finalize")
 const {
   assertSingleFigmaFile,
   buildPageSpecBundle,
@@ -52,6 +56,7 @@ function run() {
   testComparisonFallback()
   testComparisonAllowsSizeDrift()
   testBundleAssembly()
+  testFinalizeWithoutPlaybookUiAi()
 }
 
 function testSelectionParsing() {
@@ -175,12 +180,86 @@ function testBundleAssembly() {
     "context",
     "https://www.figma.com/design/file123/Test?node-id=1-1",
   ])
-  const bundle = buildPageSpecBundle(response, selections, "react", new Map(), true)
+  const body = buildPageSpecBundle(response, selections, "react", new Map(), true)
 
-  assert.equal(bundle.fileKey, "file123")
-  assert.equal(bundle.selections.length, 2)
-  assert.equal(bundle.comparison?.matched, true)
-  assert.equal(bundle.comparison?.confidence, "high")
+  assert.equal(body.fileKey, "file123")
+  assert.equal(body.selections.length, 2)
+  assert.equal(body.comparison?.matched, true)
+  assert.equal(body.comparison?.confidence, "high")
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pb-ui-ai-"))
+  const aiDir = path.join(tmp, "dist", "ai")
+  fs.mkdirSync(aiDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(aiDir, "index.json"),
+    JSON.stringify({
+      kits: [
+        {
+          components: [{ name: "Flex" }, { name: "Card" }, { name: "Body" }],
+        },
+      ],
+    }),
+  )
+
+  const bundle = finalizePageSpecBundle(body, {
+    cwd: tmp,
+    playbookUiAiRoot: aiDir,
+    invocation: {
+      mode: "selection",
+      target: "react",
+      raw: false,
+      noOptimize: true,
+      selectionRoles: ["delta", "context"],
+    },
+  })
+
+  assert.equal(bundle.meta.outputSchemaVersion, 2)
+  assert.ok(bundle.meta.playbookBuilderVersion.length > 0)
+  assert.ok(bundle.meta.playbookUiAi)
+  assert.ok(bundle.meta.playbookUiAi.componentNameCount >= 3)
+  assert.ok(Array.isArray(bundle.warnings))
+
+  fs.rmSync(tmp, { recursive: true, force: true })
+}
+
+function testFinalizeWithoutPlaybookUiAi() {
+  const body = {
+    target: "react",
+    fileKey: "file123",
+    selections: [
+      {
+        role: "delta",
+        nodeId: "1:3",
+        url: "https://www.figma.com/design/file123/Test?node-id=1-3",
+        spec: {
+          target: "react",
+          layout: {
+            component: "Flex",
+            figmaNodeId: "1:3",
+            children: [{ component: "Body", text: "Hello" }],
+          },
+        },
+      },
+    ],
+  }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pb-no-ui-"))
+  const bundle = finalizePageSpecBundle(body, {
+    cwd: tmp,
+    invocation: {
+      mode: "selection",
+      target: "react",
+      raw: false,
+      noOptimize: false,
+      selectionRoles: ["delta"],
+    },
+  })
+
+  assert.ok(
+    bundle.warnings.some((w) => w.code === "PLAYBOOK_UI_AI_METADATA_UNAVAILABLE"),
+  )
+
+  fs.rmSync(tmp, { recursive: true, force: true })
 }
 
 run()

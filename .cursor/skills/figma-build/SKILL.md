@@ -93,6 +93,9 @@ building. Use this path when the user says or implies:
    `comparison.strategy` and `comparison.score`: `figmaNodeId` is exact, while
    `structuralSimilarity` is a visual/structure hint that still needs MCP
    screenshot confirmation and codebase reconciliation.
+   Read **`warnings`** and **`meta`** on every successful spec fetch (**`--url`** and
+   **`--selection`**): playbook-ui AI checks need `playbook-ui` under `node_modules`
+   or **`--playbook-ui-ai-root`**. Missing token exits **2**; missing API node exits **4**.
 5. **Patch the existing subtree.** Add, replace, or edit the smallest page or
    feature subtree that satisfies the request. Preserve sibling sections,
    imports, props, callbacks, routes, Turbo frames, and existing behavior unless
@@ -236,7 +239,7 @@ Default shell invocation via `npx` (works from any repo):
 npx @powerhome/playbook-builder --url "<figma-url>" > <nodeId>-spec.json
 ```
 
-Output is written to stdout. Redirect to a file to save the spec. Use the nodeId (with colons replaced by dashes) as the filename, e.g. `358-93336-spec.json`.
+Output is written to stdout. Redirect to a file to save the spec. Use the nodeId (with colons replaced by dashes) as the filename, e.g. `358-93336-spec.json`. The JSON includes **`meta`** and **`warnings`** in addition to **`target`** and **`layout`**; use **`layout`** (or **`jq .layout`**) for the component tree.
 
 Requires `~/.npmrc` with GitHub Packages auth and `@powerhome` registry mapping. See the playbook-builder README for setup.
 
@@ -250,7 +253,7 @@ Requires `~/.npmrc` with GitHub Packages auth and `@powerhome` registry mapping.
 | 404 Not Found | Invalid file key or node ID | "The Figma URL doesn't point to a valid design node. Please verify the URL and ensure the `node-id` parameter is present." |
 | Network / connection error | No internet or Figma API outage | "Unable to reach the Figma API. Please check your network connection and try again." |
 | Empty or malformed output | playbook-builder bug or missing dependencies | "playbook-builder produced invalid output. If installed as a package, try `npm ls @powerhome/playbook-builder` to verify it's installed. If running from a git clone, try `npm install` then retry." |
-| `FIGMA_TOKEN` not set | Token not in environment | "The Figma API token is not set in your environment. Please go back to Step 2." |
+| `FIGMA_TOKEN` not set | Token not in environment | "The Figma API token is not set in your environment. Please go back to Step 2." (CLI exits **2**.) |
 | Any other non-zero exit code | Unknown | "playbook-builder failed unexpectedly. Share the error output so we can diagnose it." |
 
 **After the failure is resolved and playbook-builder succeeds,** resume from this step. Verify the output contains valid JSON before continuing.

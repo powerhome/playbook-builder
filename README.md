@@ -136,6 +136,15 @@ back to structural similarity across Playbook components, text, props/styles,
 and tolerant dimensions. Use the delta spec for codegen; use the comparison as
 a placement hint before reconciling with the existing nitro-web files.
 
+Each bundle also includes **`meta`** (tool version, `outputSchemaVersion`,
+timestamp, invocation flags, optional **playbook-ui** AI manifest resolution) and
+**`warnings`** (structural checks, optional manifest validation). Run from a repo
+that depends on **`playbook-ui`** (for example nitro-web), or pass
+**`--playbook-ui-ai-root`** pointing at `playbook-ui/dist/ai`, so component names
+can be checked against `dist/ai/index.json`.
+
+Single-selection **`--url`** output includes **`meta`** and **`warnings`** on the same JSON object as **`target`** and **`layout`** (additive fields for codegen and validation).
+
 For implementation in **nitro-web**, incremental UI changes follow Path C and **Spec inventory and atomic commits** in [extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md); greenfield page builds follow Path A Step 6 / Step 8 commit checkpoints and **Incremental delivery and git commits** in [SKILL.md](.cursor/skills/figma-build/SKILL.md).
 
 ### Handing off add/edit work to an agent
@@ -175,6 +184,17 @@ commits** in
 | `--raw`           | No       | Output the raw Figma REST API JSON                  |
 | `--no-optimize`   | No       | Skip chrome removal and node flattening              |
 | `--depth`         | No       | Limit API traversal depth (default: full tree)       |
+| `--playbook-ui-ai-root` | No | Directory containing playbook-ui `index.json` (default: `cwd/node_modules/playbook-ui/dist/ai`) |
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Usage or invalid arguments |
+| 2 | Missing `FIGMA_TOKEN` |
+| 3 | Figma API error or other runtime failure |
+| 4 | Requested node not found in API response |
 
 ## Environment
 
@@ -183,6 +203,8 @@ commits** in
 | `FIGMA_TOKEN` | Yes      | Figma personal access token          |
 
 ## Output format
+
+Single-node **`--url`** (non-`--raw`) responses are one object: **`target`**, **`layout`**, plus **`meta`** and **`warnings`**. The spec tree is still under **`layout`**.
 
 ```json
 {
@@ -195,19 +217,17 @@ commits** in
         "component": "Title",
         "props": { "size": 4, "bold": true },
         "text": "Project Summary"
-      },
-      {
-        "component": "Caption",
-        "props": { "color": "light", "size": "xs" },
-        "text": "Project Number"
-      },
-      {
-        "component": "Body",
-        "props": { "color": "link" },
-        "text": "38-67893"
       }
     ]
-  }
+  },
+  "meta": {
+    "playbookBuilderVersion": "0.1.1",
+    "outputSchemaVersion": 2,
+    "generatedAt": "2026-04-30T12:00:00.000Z",
+    "invocation": { "mode": "url", "target": "react", "raw": false, "noOptimize": false },
+    "playbookUiAi": { "aiDir": "/…/node_modules/playbook-ui/dist/ai", "componentNameCount": 120 }
+  },
+  "warnings": []
 }
 ```
 

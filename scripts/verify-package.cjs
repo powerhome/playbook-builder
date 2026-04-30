@@ -50,13 +50,13 @@ function main() {
       if (!/Usage/i.test(result.stderr)) process.exit(1)
     })
 
-    run("missing FIGMA_TOKEN fails clearly (exit 1)", () => {
+    run("missing FIGMA_TOKEN fails clearly (exit 2)", () => {
       const result = spawnSync(
         "npx",
         ["playbook-builder", "--url", "https://www.figma.com/design/abc123/X?node-id=1-2"],
         { cwd: tmp, encoding: "utf8", env: envNoToken }
       )
-      if (result.status !== 1) process.exit(1)
+      if (result.status !== 2) process.exit(1)
       if (!/FIGMA_TOKEN/i.test(result.stderr)) process.exit(1)
     })
   } finally {

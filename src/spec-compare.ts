@@ -17,7 +17,8 @@ interface ScoredMatchResult extends MatchResult {
 
 const HIGH_SIMILARITY_THRESHOLD = 0.82
 const MEDIUM_SIMILARITY_THRESHOLD = 0.62
-const LOW_SIMILARITY_THRESHOLD = 0.45
+/** Exported for bundle warnings when comparison is ambiguous. */
+export const LOW_SIMILARITY_THRESHOLD = 0.45
 const SIZE_TOLERANCE_RATIO = 0.25
 
 export function compareSpecs(

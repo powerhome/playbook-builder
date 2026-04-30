@@ -165,11 +165,67 @@ export interface SpecCompareResult {
   message?: string
 }
 
-export interface PageSpecBundle {
+/** One stderr/API-safe diagnostic for agents and CI. */
+export interface SpecWarning {
+  code: string
+  message: string
+  selectionRole?: string
+}
+
+/** Resolved playbook-ui AI metadata (from npm package `playbook-ui/dist/ai`). */
+export interface PlaybookUiAiMeta {
+  /** Absolute path to the directory containing index.json */
+  aiDir: string
+  /** Version field from playbook-ui package.json when readable */
+  packageVersion?: string
+  /** Count of component names extracted from index.json */
+  componentNameCount: number
+}
+
+/** Run provenance and tooling context attached to bundle stdout JSON. */
+export interface PageSpecBundleMeta {
+  playbookBuilderVersion: string
+  /** Bump when bundle stdout shape or semantics change */
+  outputSchemaVersion: number
+  generatedAt: string
+  invocation: PageSpecInvocationMeta
+  playbookUiAi?: PlaybookUiAiMeta
+}
+
+export interface PageSpecInvocationMeta {
+  mode: "url" | "selection"
+  target: "react" | "rails"
+  raw: boolean
+  noOptimize: boolean
+  depth?: number
+  selectionRoles?: string[]
+}
+
+/** Single-url CLI stdout: PageSpec fields plus run metadata (additive). */
+export interface PageSpecWithRunMeta extends PageSpec {
+  meta: PageSpecBundleMeta
+  warnings: SpecWarning[]
+}
+
+/** Internal shape before flattening to PageSpecWithRunMeta on stdout. */
+export interface PageSpecEnvelope {
+  meta: PageSpecBundleMeta
+  warnings: SpecWarning[]
+  pageSpec: PageSpec
+}
+
+/** Figma selections + specs produced before meta/warnings are attached (CLI finalize step). */
+export interface PageSpecBundleBody {
   target: "react" | "rails"
   fileKey: string
   selections: PageSpecSelection[]
   comparison?: SpecCompareResult
+}
+
+/** Full stdout JSON for multi-selection mode. */
+export interface PageSpecBundle extends PageSpecBundleBody {
+  meta: PageSpecBundleMeta
+  warnings: SpecWarning[]
 }
 
 // ---------------------------------------------------------------------------

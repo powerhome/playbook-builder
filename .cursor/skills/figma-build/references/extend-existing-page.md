@@ -208,6 +208,14 @@ similarity. Use `comparison.path`, `comparison.siblingHint`,
 existing nitro-web files to decide the actual file boundary and integration
 point. The same Path A pipeline applies; only the scope of visual review shrinks.
 
+Successful **`--url`** and bundled **`--selection`** stdout both include **`meta`**
+(versions, `outputSchemaVersion`, invocation, optional **`playbook-ui/dist/ai`**
+resolution) and **`warnings`**. For **`--url`**, those fields sit alongside **`target`**
+and **`layout`** on one object. Read `warnings` before codegen; use
+**`--playbook-ui-ai-root`** when `playbook-ui` is not under the current working
+directory’s `node_modules`. Exit code **2** means missing `FIGMA_TOKEN`; **4** means the
+node was not returned by the Figma API.
+
 When you run `playbook-builder` for that delta:
 
 1. **Token** — Follow Path A Step 2 in **SKILL.md**. No token means stop and tell
