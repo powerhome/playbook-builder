@@ -116,6 +116,24 @@ playbook-builder --url "https://..." | jq '.layout.children[0]'
 playbook-builder --url "https://..." --depth 5 > spec.json
 ```
 
+### Multiple selections and comparison bundles
+
+For add/edit work, fetch the small **delta** node plus a wider **context** node
+when placement matters. The CLI batches those selections in one Figma API
+request and writes a `PageSpecBundle`:
+
+```bash
+playbook-builder \
+  --selection delta "https://www.figma.com/design/abc123/MyFile?node-id=555-666" \
+  --selection context "https://www.figma.com/design/abc123/MyFile?node-id=111-222" \
+  > bundle.json
+```
+
+The bundle contains one spec per selection and, when `delta` and `context` are
+present, a `comparison` object with the delta's path and sibling position inside
+the context tree. Use the delta spec for codegen; use the comparison as a
+placement hint before reconciling with the existing nitro-web files.
+
 For implementation in **nitro-web**, incremental UI changes follow Path C and **Spec inventory and atomic commits** in [extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md); greenfield page builds follow Path A Step 6 / Step 8 commit checkpoints and **Incremental delivery and git commits** in [SKILL.md](.cursor/skills/figma-build/SKILL.md).
 
 ### Handing off add/edit work to an agent
@@ -150,6 +168,7 @@ commits** in
 | Flag              | Required | Description                                         |
 |-------------------|----------|-----------------------------------------------------|
 | `--url`           | Yes      | Figma design URL with `node-id` query param         |
+| `--selection`     | No       | Role + Figma URL; repeat for comparison bundles     |
 | `--target`        | No       | `react` (default) or `rails`                        |
 | `--raw`           | No       | Output the raw Figma REST API JSON                  |
 | `--no-optimize`   | No       | Skip chrome removal and node flattening              |

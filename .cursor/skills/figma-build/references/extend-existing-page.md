@@ -105,9 +105,11 @@ commits** instead of one giant diff.
 ### Before you write code
 
 1. **List spec sources.** For each UI slice that comes from Figma, record the
-   planned `playbook-builder` run: **URL + `node-id`**. If you will skip the spec fetch,
-   write why (for example "Title size tweak only in existing TSX", or
-   `interaction_only` with no new nodes from Figma).
+   planned `playbook-builder` run: **role + URL + `node-id`**. Use `delta` for
+   the new or changed UI and `context` for a wider page/section selection when
+   placement needs visual comparison. If you will skip the spec fetch, write why
+   (for example "Title size tweak only in existing TSX", or `interaction_only`
+   with no new nodes from Figma).
 2. **Never commit spec JSON** as part of the implementation branch (keep it
    local/ephemeral or omit from commits). Same rule as Path A in **SKILL.md**.
 3. **Order work** so each step is reviewable: subtree implementation first, then
@@ -161,9 +163,11 @@ feature branch even if merge collapses history.
 3. **Read first:** inspect the target page/feature files and one or two similar
    sections in the same pack for naming, file size, props, callbacks, and
    composition style.
-4. **Scope the Figma input:** run `playbook-builder` only on the small Figma
-   node for the new or changed UI. Do not run codegen on the full page unless
-   the user explicitly asked for a full rebuild.
+4. **Scope the Figma input:** run `playbook-builder` on the small Figma node for
+   the new or changed UI. When a wider page/section selection is available, fetch
+   both as a comparison bundle (`--selection delta ... --selection context ...`)
+   and use the context only for placement hints. Do not run codegen on the full
+   page unless the user explicitly asked for a full rebuild.
 5. **Reconcile spec to code:** map Figma sections to existing `*Section`,
    `*Panel`, or partial files when possible. Extend or replace the specific
    subtree; do not invent new top-level structure that conflicts with the pack.
@@ -187,7 +191,20 @@ mirror Figma layer names.
 
 Invoke playbook-builder however your environment supports it (**`npx`**, installed binary, or **plugin / marketplace** wrapper such as nitro-web or plugin-config). The contract is the same: valid PageSpec JSON for the Figma `node-id`.
 
-For Path C you usually fetch a **delta** spec (small `node-id`). The same Path A
+For Path C you usually fetch a **delta** spec (small `node-id`). If the handoff
+also includes a full-page or parent-section selection, prefer one bundled fetch:
+
+```bash
+playbook-builder \
+  --selection delta "https://www.figma.com/design/abc123/File?node-id=555-666" \
+  --selection context "https://www.figma.com/design/abc123/File?node-id=111-222" \
+  > bundle.json
+```
+
+The bundle includes a spec for each selection and a `comparison` object when the
+delta appears inside the context. Use `comparison.path` and
+`comparison.siblingHint` to orient the change, then read the existing nitro-web
+files to decide the actual file boundary and integration point. The same Path A
 pipeline applies; only the scope of visual review shrinks.
 
 When you run `playbook-builder` for that delta:
@@ -337,7 +354,8 @@ to a named existing callback/API, then flag the backend follow-up clearly.
 - URL (if you have it):
 
 **Figma**
-- Link (with `node-id` if possible; use "copy link to selection" on the small frame that is only the new or changed UI):
+- Delta link (small frame that is only the new or changed UI; use "copy link to selection"):
+- Context link (optional wider page/section selection for placement comparison):
 - If you only have the full page in Figma, say so.
 
 **What should happen**
@@ -367,6 +385,9 @@ to a named existing callback/API, then flag the backend follow-up clearly.
 **Route / controller:** optional
 
 **Figma (delta)** - `node-id` should point at only the new/changed frame:
+- URL:
+
+**Figma (context)** - optional parent section or full page for comparison:
 - URL:
 
 **Placement**

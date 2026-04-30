@@ -22,6 +22,7 @@
     "build": "tsc",
     "fetch": "./bin/playbook-builder",
     "prepublishOnly": "npm run build",
+    "test": "npm run build && node scripts/test-spec-bundle.cjs",
     "test:package": "node scripts/verify-package.cjs"
   },
   "devDependencies": {

@@ -122,6 +122,7 @@ export interface SpecNode {
   htmlOptions?: { style: Record<string, string> }
   text?: string
   figmaName?: string
+  figmaNodeId?: string
   children?: SpecNode[]
   dimensions?: SpecNodeDimensions
 }
@@ -129,6 +130,45 @@ export interface SpecNode {
 export interface PageSpec {
   target: "react" | "rails"
   layout: SpecNode
+}
+
+export interface PageSpecSelection {
+  role: string
+  nodeId: string
+  url: string
+  spec: PageSpec
+}
+
+export interface SpecCompareBreadcrumb {
+  component: string
+  figmaName?: string
+  figmaNodeId?: string
+}
+
+export interface SpecCompareSiblingHint {
+  index: number
+  count: number
+  before?: SpecCompareBreadcrumb
+  after?: SpecCompareBreadcrumb
+}
+
+export interface SpecCompareResult {
+  deltaRole: string
+  contextRole: string
+  deltaRootId?: string
+  matched: boolean
+  confidence: "high" | "low" | "none"
+  strategy: "figmaNodeId" | "textAndComponentPath" | "none"
+  path?: SpecCompareBreadcrumb[]
+  siblingHint?: SpecCompareSiblingHint
+  message?: string
+}
+
+export interface PageSpecBundle {
+  target: "react" | "rails"
+  fileKey: string
+  selections: PageSpecSelection[]
+  comparison?: SpecCompareResult
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,12 @@
 import { fetchFigmaNodes, fetchFigmaVariables, parseFigmaUrl } from "./figma-client"
 import { processTree } from "./node-processor"
 import { optimizeSpec } from "./spec-optimizer"
-import type { PageSpec, SpecNode } from "./types"
+import {
+  assertSingleFigmaFile,
+  buildPageSpecBundle,
+  parseSelectionArgs,
+} from "./spec-bundle"
+import type { PageSpec } from "./types"
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -14,6 +19,7 @@ function parseArgs(argv: string[]) {
   }
   return {
     url: get("--url"),
+    selections: parseSelectionArgs(argv),
     target: (get("--target") ?? "react") as "react" | "rails",
     raw: argv.includes("--raw"),
     noOptimize: argv.includes("--no-optimize"),
@@ -24,8 +30,10 @@ function parseArgs(argv: string[]) {
 function usage(): never {
   process.stderr.write(
     "Usage: playbook-builder --url <figma-url> [options]\n\n" +
+    "       playbook-builder --selection delta <figma-url> --selection context <figma-url> [options]\n\n" +
     "Flags:\n" +
     "  --url           Figma design URL (required)\n" +
+    "  --selection     Role + Figma URL; repeat for multi-selection bundles\n" +
     "  --target        Output target: react (default) or rails\n" +
     "  --raw           Output raw Figma REST API JSON\n" +
     "  --no-optimize   Skip chrome removal and node flattening\n" +
@@ -44,7 +52,11 @@ function usage(): never {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
-  if (!args.url) usage()
+  if (!args.url && args.selections.length === 0) usage()
+  if (args.url && args.selections.length > 0) {
+    process.stderr.write("Error: use either --url or --selection, not both.\n")
+    process.exit(1)
+  }
 
   const token = process.env.FIGMA_TOKEN
   if (!token) {
@@ -55,7 +67,32 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
-  const { fileKey, nodeId } = parseFigmaUrl(args.url)
+  if (args.selections.length > 0) {
+    const fileKey = assertSingleFigmaFile(args.selections)
+    const nodeIds = [...new Set(args.selections.map(selection => selection.nodeId))]
+
+    const [response, variables] = await Promise.all([
+      fetchFigmaNodes(fileKey, nodeIds, token, args.depth),
+      fetchFigmaVariables(fileKey, token),
+    ])
+
+    if (args.raw) {
+      process.stdout.write(JSON.stringify(response, null, 2) + "\n")
+      return
+    }
+
+    const bundle = buildPageSpecBundle(
+      response,
+      args.selections,
+      args.target,
+      variables,
+      args.noOptimize,
+    )
+    process.stdout.write(JSON.stringify(bundle, null, 2) + "\n")
+    return
+  }
+
+  const { fileKey, nodeId } = parseFigmaUrl(args.url!)
 
   const [response, variables] = await Promise.all([
     fetchFigmaNodes(fileKey, [nodeId], token, args.depth),

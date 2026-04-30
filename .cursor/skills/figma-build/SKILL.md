@@ -61,6 +61,7 @@ building. Use this path when the user says or implies:
 |-------|-----------|-------|
 | `changeType` | recommended | One of `add_page_section`, `add_inside_feature`, `edit_page_section`, `edit_feature`, or `interaction_only` |
 | `figmaUrl` | required for new/redesigned UI | Must point to the smallest practical node for the new or changed UI. Ask for a child `node-id` if the link points to the whole page. |
+| `contextFigmaUrl` | optional | Wider page/section selection for placement comparison. When supplied with `figmaUrl`, prefer `playbook-builder --selection delta <figmaUrl> --selection context <contextFigmaUrl>` over separate manual fetches. |
 | `target` | required | App page, route, menu path, component pack, entry file, or feature name. Ask for one anchor if missing. |
 | `placement` | optional | Insert/replace hint. If absent, infer from Figma order, screenshots, and existing component structure. |
 | `interactionBrief` | required when behavior matters | Required when `changeType` is `interaction_only`, or when the user mentions clicks, modals, tabs, loading/error/empty states, multi-step flows, or save/persist. Optional for purely visual edits (props/layout/copy) with no behavior change. Include states, triggers, persistence, and existing APIs/callbacks if known. |
@@ -86,6 +87,9 @@ building. Use this path when the user says or implies:
    subsection appears **after** **Incremental delivery and git commits** in this
    skill (same document order as Path A: token, JSON validation, MCP gap list on
    the delta node).
+   If the handoff includes both a delta and a wider context selection, fetch a
+   comparison bundle and use `comparison.path` / `comparison.siblingHint` only
+   as placement evidence before reading and patching the nitro-web files.
 5. **Patch the existing subtree.** Add, replace, or edit the smallest page or
    feature subtree that satisfies the request. Preserve sibling sections,
    imports, props, callbacks, routes, Turbo frames, and existing behavior unless
