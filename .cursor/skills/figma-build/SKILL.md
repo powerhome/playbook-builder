@@ -89,7 +89,10 @@ building. Use this path when the user says or implies:
    the delta node).
    If the handoff includes both a delta and a wider context selection, fetch a
    comparison bundle and use `comparison.path` / `comparison.siblingHint` only
-   as placement evidence before reading and patching the nitro-web files.
+   as placement evidence before reading and patching the nitro-web files. Check
+   `comparison.strategy` and `comparison.score`: `figmaNodeId` is exact, while
+   `structuralSimilarity` is a visual/structure hint that still needs MCP
+   screenshot confirmation and codebase reconciliation.
 5. **Patch the existing subtree.** Add, replace, or edit the smallest page or
    feature subtree that satisfies the request. Preserve sibling sections,
    imports, props, callbacks, routes, Turbo frames, and existing behavior unless

@@ -202,10 +202,11 @@ playbook-builder \
 ```
 
 The bundle includes a spec for each selection and a `comparison` object when the
-delta appears inside the context. Use `comparison.path` and
-`comparison.siblingHint` to orient the change, then read the existing nitro-web
-files to decide the actual file boundary and integration point. The same Path A
-pipeline applies; only the scope of visual review shrinks.
+delta can be found exactly by Figma node ID or approximately by structural
+similarity. Use `comparison.path`, `comparison.siblingHint`,
+`comparison.strategy`, and `comparison.score` to orient the change, then read the
+existing nitro-web files to decide the actual file boundary and integration
+point. The same Path A pipeline applies; only the scope of visual review shrinks.
 
 When you run `playbook-builder` for that delta:
 

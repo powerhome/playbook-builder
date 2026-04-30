@@ -49,12 +49,34 @@ export function optimizeSpec(root: SpecNode, opts?: OptimizerOptions): SpecNode 
   let result = root
   if (skipChrome) result = stripChrome(result)
   if (flatten) result = flattenWrappers(result)
+  result = normalizeRootFrame(result)
   result = groupFooterRows(result)
   result = normalizeSegmentedBorderRadii(result)
   result = flattenFormGroupWrappers(result)
   result = addPageContainerBottomPadding(result)
   result = sortPropsAlphabetically(result)
   return result
+}
+
+function normalizeRootFrame(root: SpecNode): SpecNode {
+  if (root.component !== "_Frame") return root
+  if (!root.children || root.children.length === 0) return root
+  if (root.children.length === 1) {
+    return {
+      ...root.children[0],
+      figmaName: root.children[0].figmaName ?? root.figmaName,
+      figmaNodeId: root.children[0].figmaNodeId ?? root.figmaNodeId,
+    }
+  }
+
+  return {
+    component: "Flex",
+    props: { orientation: "column" },
+    figmaName: root.figmaName,
+    figmaNodeId: root.figmaNodeId,
+    dimensions: root.dimensions,
+    children: root.children,
+  }
 }
 
 // ---------------------------------------------------------------------------

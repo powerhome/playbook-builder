@@ -50,6 +50,7 @@ function run() {
   testSelectionParsing()
   testComparisonById()
   testComparisonFallback()
+  testComparisonAllowsSizeDrift()
   testBundleAssembly()
 }
 
@@ -88,12 +89,30 @@ function testComparisonFallback() {
   const deltaWithoutIds = JSON.parse(JSON.stringify(deltaLayout))
   delete contextWithoutIds.children[1].figmaNodeId
   delete deltaWithoutIds.figmaNodeId
+  contextWithoutIds.children[1].children[0].figmaNodeId = "9:9"
+  deltaWithoutIds.children[0].figmaNodeId = "8:8"
 
   const result = compareSpecs(contextWithoutIds, deltaWithoutIds)
 
   assert.equal(result.matched, true)
-  assert.equal(result.confidence, "low")
-  assert.equal(result.strategy, "textAndComponentPath")
+  assert.equal(result.confidence, "high")
+  assert.equal(result.strategy, "structuralSimilarity")
+  assert.equal(result.score, 1)
+}
+
+function testComparisonAllowsSizeDrift() {
+  const contextWithSizeDrift = JSON.parse(JSON.stringify(contextLayout))
+  const deltaWithDifferentId = JSON.parse(JSON.stringify(deltaLayout))
+  contextWithSizeDrift.children[1].figmaNodeId = "7:7"
+  contextWithSizeDrift.children[1].dimensions = { width: 960, height: 120 }
+  deltaWithDifferentId.figmaNodeId = "8:8"
+  deltaWithDifferentId.dimensions = { width: 720, height: 100 }
+
+  const result = compareSpecs(contextWithSizeDrift, deltaWithDifferentId)
+
+  assert.equal(result.matched, true)
+  assert.equal(result.strategy, "structuralSimilarity")
+  assert.equal(result.path?.at(-1)?.figmaName, "Past Due Banner")
 }
 
 function testBundleAssembly() {

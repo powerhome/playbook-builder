@@ -116,9 +116,10 @@ function processChildren(
   if (!nodes) return []
 
   return nodes
-    .map((n) => {
+    .flatMap((n) => {
       const spec = processNode(n, components, variables)
-      if (isInternalComponent(spec.component)) return spec
+      if (spec.component === INTERNAL_COMPONENTS.FRAME) return spec.children ?? []
+      if (isInternalComponent(spec.component)) return []
 
       if (parentLayoutMode) {
         applySizingFromParent(spec, n, parentLayoutMode, parentCrossAlign)
@@ -127,5 +128,4 @@ function processChildren(
       addDimensions(n, spec)
       return spec
     })
-    .filter((n) => !isInternalComponent(n.component))
 }

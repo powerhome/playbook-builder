@@ -157,8 +157,9 @@ export interface SpecCompareResult {
   contextRole: string
   deltaRootId?: string
   matched: boolean
-  confidence: "high" | "low" | "none"
-  strategy: "figmaNodeId" | "textAndComponentPath" | "none"
+  confidence: "high" | "medium" | "low" | "none"
+  strategy: "figmaNodeId" | "structuralSimilarity" | "none"
+  score?: number
   path?: SpecCompareBreadcrumb[]
   siblingHint?: SpecCompareSiblingHint
   message?: string

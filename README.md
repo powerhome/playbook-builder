@@ -130,9 +130,11 @@ playbook-builder \
 ```
 
 The bundle contains one spec per selection and, when `delta` and `context` are
-present, a `comparison` object with the delta's path and sibling position inside
-the context tree. Use the delta spec for codegen; use the comparison as a
-placement hint before reconciling with the existing nitro-web files.
+present, a `comparison` object with the best matching path and sibling position
+inside the context tree. Matching first uses exact Figma node IDs, then falls
+back to structural similarity across Playbook components, text, props/styles,
+and tolerant dimensions. Use the delta spec for codegen; use the comparison as
+a placement hint before reconciling with the existing nitro-web files.
 
 For implementation in **nitro-web**, incremental UI changes follow Path C and **Spec inventory and atomic commits** in [extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md); greenfield page builds follow Path A Step 6 / Step 8 commit checkpoints and **Incremental delivery and git commits** in [SKILL.md](.cursor/skills/figma-build/SKILL.md).
 
