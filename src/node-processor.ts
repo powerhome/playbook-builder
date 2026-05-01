@@ -43,6 +43,7 @@ export function processTree(
     processChildren(nodes, components, vars, mode, align)
 
   const spec = processNodeFn(root)
+  spec.figmaNodeId = root.id
   addDimensions(root, spec)
   return spec
 }
@@ -57,7 +58,11 @@ function processNode(
   variables: VariableMap,
 ): SpecNode {
   if (node.visible === false) {
-    return { component: INTERNAL_COMPONENTS.HIDDEN, figmaName: node.name }
+    return {
+      component: INTERNAL_COMPONENTS.HIDDEN,
+      figmaName: node.name,
+      figmaNodeId: node.id,
+    }
   }
 
   const childrenFn: ChildrenProcessorFn = (nodes, mode, align) =>
@@ -66,7 +71,8 @@ function processNode(
   const frameFn = (n: FigmaNode): SpecNode =>
     processFrame(n, variables, childrenFn)
 
-  switch (node.type) {
+  const spec = (() => {
+    switch (node.type) {
     case "TEXT":
       return processText(node, variables)
 
@@ -83,6 +89,10 @@ function processNode(
     default:
       return { component: INTERNAL_COMPONENTS.SHAPE, figmaName: node.name }
   }
+  })()
+
+  spec.figmaNodeId = node.id
+  return spec
 }
 
 // ---------------------------------------------------------------------------
@@ -106,9 +116,10 @@ function processChildren(
   if (!nodes) return []
 
   return nodes
-    .map((n) => {
+    .flatMap((n) => {
       const spec = processNode(n, components, variables)
-      if (isInternalComponent(spec.component)) return spec
+      if (spec.component === INTERNAL_COMPONENTS.FRAME) return spec.children ?? []
+      if (isInternalComponent(spec.component)) return []
 
       if (parentLayoutMode) {
         applySizingFromParent(spec, n, parentLayoutMode, parentCrossAlign)
@@ -117,5 +128,4 @@ function processChildren(
       addDimensions(n, spec)
       return spec
     })
-    .filter((n) => !isInternalComponent(n.component))
 }

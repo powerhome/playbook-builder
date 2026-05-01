@@ -1,15 +1,29 @@
 ---
 name: figma-build
-description: Translate a Figma design into view-layer Playbook components. Fetches design data via playbook-builder CLI, reads the optimized spec as the single source of truth, and generates modular UI files (React TSX or ERB partials) with client-side interactivity. Does NOT generate application logic, Turbo wiring, or backend data processing. Use when the user provides a Figma URL and asks to build, create, or implement a page or component.
+description: Translate a Figma design into view-layer Playbook components. Fetches design data via playbook-builder (terminal `npx`/binary or equivalent plugin or marketplace wrapper); reads the optimized spec as the single source of truth; generates modular UI (React TSX or ERB partials) with client-side interactivity. Also use for Path C — add, edit, or extend existing nitro-web pages or features from a scoped Figma delta, reconciling the spec into existing code. Does NOT generate application logic, Turbo wiring, or backend data processing. Use when the user provides a Figma URL (and often a target component directory) and asks to build, create, implement, extend, edit, or add UI.
 ---
 
 # Figma Build
 
 Translate a Figma design into view-layer Playbook components with client-side interactivity. Infrastructure (controllers, routes, entrypoints) either already exists (Path A) or is created by nitro-web's own generator (Path B). This skill never generates application logic, Turbo wiring, or backend data processing.
 
+For a one-screen **design-to-code pipeline** diagram (Path → spec inventory → fetch PageSpec → MCP → patch → commits → audit), see **Design-to-code pipeline (agents)** in the repo [README.md](../../../README.md).
+
 ## Trigger
 
-User provides a Figma URL and a target component directory.
+User provides a Figma URL and a target component directory, or asks to add,
+edit, extend, or wire interaction behavior into an existing nitro-web page or
+feature using a Figma design.
+
+### Invoking playbook-builder
+
+What matters is **successful PageSpec JSON** from `@powerhome/playbook-builder`
+(Figma URL + `FIGMA_TOKEN`). Typical ways to run it:
+
+- **Terminal:** `npx @powerhome/playbook-builder` or the installed `playbook-builder` binary (see Path A Step 3).
+- **IDE / plugin marketplace:** A Cursor or nitro-web packaged action that invokes the same package or exposes the same fetch — for example tooling wired from **plugin-config** or your marketplace install.
+
+Use whichever invocation your environment provides. **Do not** replace the official spec with MCP-only hand-building when this skill requires playbook-builder to succeed.
 
 ## Choose your path
 
@@ -17,8 +31,167 @@ User provides a Figma URL and a target component directory.
 |------|------------|--------------|
 | **A: Existing component** (primary) | Component already exists in `components/` | Write files directly into the component's app directory |
 | **B: New component** (secondary) | No suitable component exists | Run [setup-component.md](./references/setup-component.md) first, then follow Path A |
+| **C: Extend/edit existing page or feature** | User asks to add to, edit, replace, or add interactions to UI that already exists in nitro-web | Read the existing implementation first, run playbook-builder only on the scoped delta node when needed, then reconcile the spec into the existing page/feature |
 
-**Always prefer Path A.** Most Figma builds go into existing components.
+**Always prefer Path A or C over Path B.** Most Figma builds go into existing
+components. Use Path C when the task is an incremental change, not a greenfield
+page build.
+
+---
+
+## Path C: Extend or edit an existing page or feature
+
+Read [extend-existing-page.md](./references/extend-existing-page.md) before
+building. Use this path when the user says or implies:
+
+- "add this to an existing page", "insert this banner/card/section", "work this
+  into the current screen", or "new element on an existing page"
+- "change this feature", "update the existing component", "replace this
+  section", or "make the built page match this design"
+- "add to the feature we already made", "extend the flow", or "new
+  step/state/dialog for this feature"
+- "when they click", "show a modal", "loading/error/empty state", "multi-step",
+  "tab behavior", "save/confirm/cancel"
+- A full-page Figma URL is provided, but the user says only part of the page is
+  new or changed
+
+### Path C input model
+
+| Input | Required? | Notes |
+|-------|-----------|-------|
+| `changeType` | recommended | One of `add_page_section`, `add_inside_feature`, `edit_page_section`, `edit_feature`, or `interaction_only` |
+| `figmaUrl` | required for new/redesigned UI | Must point to the smallest practical node for the new or changed UI. Ask for a child `node-id` if the link points to the whole page. |
+| `contextFigmaUrl` | optional | Wider page/section selection for placement comparison. When supplied with `figmaUrl`, prefer `playbook-builder --selection delta <figmaUrl> --selection context <contextFigmaUrl>` over separate manual fetches. |
+| `target` | required | App page, route, menu path, component pack, entry file, or feature name. Ask for one anchor if missing. |
+| `placement` | optional | Insert/replace hint. If absent, infer from Figma order, screenshots, and existing component structure. |
+| `interactionBrief` | required when behavior matters | Required when `changeType` is `interaction_only`, or when the user mentions clicks, modals, tabs, loading/error/empty states, multi-step flows, or save/persist. Optional for purely visual edits (props/layout/copy) with no behavior change. Include states, triggers, persistence, and existing APIs/callbacks if known. |
+
+### Path C workflow
+
+1. **Classify the request.** Decide whether this is page-level add/edit,
+   feature-level add/edit, or interaction-only work. If it is actually a new
+   isolated component with no existing nitro target, use Path B instead.
+2. **Read existing implementation first.** Inspect the target page/feature files
+   and one or two similar sections in the same component pack for file naming,
+   props, callbacks, types, and composition.
+3. **Reconcile Figma to code.** The spec is the source for Playbook components,
+   props, spacing, layout intent, and copy. Existing nitro-web code is the
+   source for file boundaries, data flow, exports, props, callbacks, and Rails
+   vs React ownership. Match the design without mirroring Figma layer names into
+   the repo.
+4. **Scope the spec fetch.** For new/redesigned UI, run playbook-builder only on
+   the small delta node (terminal, `npx`, or plugin/marketplace wrapper). Do not regenerate the full page unless the user
+   explicitly asks for a full-page rebuild and accepts the wiring risk. When you
+   fetch the spec for that delta, apply Path A Step 2 (token), Step 3 (spec fetch), and
+   Step 3b (MCP) as spelled out in **Path C inherits Path A mechanics** — that
+   subsection appears **after** **Incremental delivery and git commits** in this
+   skill (same document order as Path A: token, JSON validation, MCP gap list on
+   the delta node).
+   If the handoff includes both a delta and a wider context selection, fetch a
+   comparison bundle and use `comparison.path` / `comparison.siblingHint` only
+   as placement evidence before reading and patching the nitro-web files. Check
+   `comparison.strategy` and `comparison.score`: `figmaNodeId` is exact, while
+   `structuralSimilarity` is a visual/structure hint that still needs MCP
+   screenshot confirmation and codebase reconciliation.
+   Read **`warnings`** and **`meta`** on every successful spec fetch (**`--url`** and
+   **`--selection`**): playbook-ui AI checks need `playbook-ui` under `node_modules`
+   or **`--playbook-ui-ai-root`**. Missing token exits **2**; missing API node exits **4**.
+5. **Patch the existing subtree.** Add, replace, or edit the smallest page or
+   feature subtree that satisfies the request. Preserve sibling sections,
+   imports, props, callbacks, routes, Turbo frames, and existing behavior unless
+   the brief explicitly changes them. **Commit** after each coherent unit of work
+   (for example a new or replaced section file, then separately the parent
+   import/composition if it is a distinct change). See **Incremental delivery and
+   git commits** (subsection immediately after this workflow).
+6. **Handle interactions within scope.** Client-side state, Playbook dialogs,
+   tabs, collapse behavior, disabled/loading states, and named existing
+   callbacks are in scope. New Rails endpoints, persistence contracts, Turbo
+   streams, model queries, and authorization are out of scope unless the user
+   explicitly asks for backend work. Stub or flag backend follow-up rather than
+   inventing APIs.
+7. **Run the same quality gates as Path A (scoped).** Follow the framework
+   reference files, Playbook-only styling rules, file-size guidance,
+   formatting/linting, and Path A Step 9 post-build audits. Apply Phase 1–3 to
+   **every spec-backed subtree you added or changed** and to parent wiring you
+   touched. You do not need to re-audit unrelated sections of the page that you
+   did not modify. Extend/edit changes narrow the scope; they do not lower the
+   bar. **Commit** after format/lint (same pattern as Path A Step 8). If audit
+   fixes are large, put them in their own commit after the feature commits.
+
+### Incremental delivery and git commits
+
+Applies to **Path A**, **Path B then A**, and **Path C**. Goal: **minimal diffs**,
+**spec scope identified before coding**, and **one logical commit per step** so
+reviewers can read `git log` on a branch or PR and follow progress. Detailed
+examples live in
+[extend-existing-page.md](./references/extend-existing-page.md) → **Spec
+inventory and atomic commits**.
+
+1. **Spec inventory before coding.** List every `playbook-builder` run you plan
+   (Figma URL + `node-id`) or state why the spec fetch is skipped (tiny prop tweak,
+   `interaction_only` with no new UI from Figma). Do **not** commit spec JSON.
+2. **Implement in small steps.** Touch the smallest set of files that satisfies
+   the current slice of work; avoid unrelated refactors in the same commit as
+   feature changes.
+3. **Commit after each logical unit.** `git add` only files that belong to that
+   step, then commit. Use imperative subjects, for example `feat: …`, `fix: …`,
+   `style: …`, matching existing checkpoints in Path A Step 6 and Step 8.
+4. **Path A parity.** Follow existing **Commit checkpoint** lines in Step 6
+   (after each section file) and Step 8 (after format/lint).
+5. **Path C parity.** Typical sequence: commit new/edited subtree files → commit
+   parent wiring if it is a separate change → format/lint commit → optional
+   separate commit for substantial audit-only fixes.
+6. **Buildable commits.** Prefer each commit to leave the project in a sensible
+   state (lint/typecheck expectations per repo). If an intermediate state cannot
+   compile, combine steps or fix-forward in one commit rather than pushing broken
+   milestones unless the user explicitly allows WIP commits.
+7. **Permissions.** Creating commits requires **git write** access in the agent
+   environment. If the user disallows git operations, output a numbered **proposed
+   commit plan** (files + messages) for the developer to run locally.
+8. **Squash merge.** Some teams squash PRs; atomic commits still help **during**
+   branch review even if history collapses at merge.
+
+### Path C inherits Path A mechanics
+
+Canonical detail lives in [extend-existing-page.md](./references/extend-existing-page.md).
+When `playbook-builder` runs for a Path C delta:
+
+1. **Step 2 (token)** — Follow Path A Step 2. Do not fetch the spec without a valid
+   `FIGMA_TOKEN`.
+2. **Step 3 (spec fetch)** — Follow Path A Step 3: run `playbook-builder` (however your environment invokes it), validate JSON
+   output, handle failures per Path A’s diagnosis table. Do not commit spec JSON.
+3. **Step 3b (MCP)** — Follow Path A Step 3b **for the delta node**: screenshot,
+   `get_design_context` on major sub-nodes of the delta, gap list for components
+   the spec omits (e.g. Avatar, Icon). Skip Step 3b only if you did not run
+   playbook-builder (for example `interaction_only` with no Figma delta).
+
+Path A Steps 4–6 still apply to **building** the delta UI from the spec; Path C
+adds **reconciliation** with existing files before and after that build.
+
+### Path C translation rules vs Path A Step 6
+
+Path A Step 6 says every spec prop must appear in code and warns against adding
+props not in the spec. For Path C, follow this split:
+
+- **Delta subtree from the spec:** Treat Path A Step 6 as written — preserve every
+  emitted spec prop, nesting, and spec text for that subtree.
+- **Integration glue:** You may add **minimal** extra props, types, ids, or
+  callbacks required to attach that subtree to **existing parent or sibling
+  contracts** (for example `onClick` wired to an existing handler, `pickerId` for
+  `DatePicker`, props the parent already passes down). Do not add speculative
+  props that are not required for integration or Playbook correctness.
+
+### Path C question policy
+
+Ask before coding when:
+
+- You cannot identify where in nitro-web the change belongs from app page, URL,
+  menu path, feature name, or visible copy.
+- The Figma link is a full-page node but the request is scoped to part of the
+  page.
+- Interaction behavior includes persistence but does not say whether to keep it
+  local, reuse an existing API/callback, or leave backend follow-up.
+- Matching the spec would require replacing current data flow or callbacks.
 
 ---
 
@@ -58,13 +231,15 @@ echo 'export FIGMA_TOKEN="<token>"' >> ~/.zshrc
 
 ### Step 3: Fetch the spec
 
-Run via `npx` (works from any repo):
+You may run playbook-builder from a **shell** or through an **IDE/plugin or marketplace action** (for example in nitro-web or via plugin-config) as long as it produces the same JSON to stdout or into your editor.
+
+Default shell invocation via `npx` (works from any repo):
 
 ```bash
 npx @powerhome/playbook-builder --url "<figma-url>" > <nodeId>-spec.json
 ```
 
-Output is written to stdout. Redirect to a file to save the spec. Use the nodeId (with colons replaced by dashes) as the filename, e.g. `358-93336-spec.json`.
+Output is written to stdout. Redirect to a file to save the spec. Use the nodeId (with colons replaced by dashes) as the filename, e.g. `358-93336-spec.json`. The JSON includes **`meta`** and **`warnings`** in addition to **`target`** and **`layout`**; use **`layout`** (or **`jq .layout`**) for the component tree.
 
 Requires `~/.npmrc` with GitHub Packages auth and `@powerhome` registry mapping. See the playbook-builder README for setup.
 
@@ -78,7 +253,7 @@ Requires `~/.npmrc` with GitHub Packages auth and `@powerhome` registry mapping.
 | 404 Not Found | Invalid file key or node ID | "The Figma URL doesn't point to a valid design node. Please verify the URL and ensure the `node-id` parameter is present." |
 | Network / connection error | No internet or Figma API outage | "Unable to reach the Figma API. Please check your network connection and try again." |
 | Empty or malformed output | playbook-builder bug or missing dependencies | "playbook-builder produced invalid output. If installed as a package, try `npm ls @powerhome/playbook-builder` to verify it's installed. If running from a git clone, try `npm install` then retry." |
-| `FIGMA_TOKEN` not set | Token not in environment | "The Figma API token is not set in your environment. Please go back to Step 2." |
+| `FIGMA_TOKEN` not set | Token not in environment | "The Figma API token is not set in your environment. Please go back to Step 2." (CLI exits **2**.) |
 | Any other non-zero exit code | Unknown | "playbook-builder failed unexpectedly. Share the error output so we can diagnose it." |
 
 **After the failure is resolved and playbook-builder succeeds,** resume from this step. Verify the output contains valid JSON before continuing.
@@ -137,16 +312,17 @@ Flex (flex="1")                  Flex (flex="1")
 
 1. Read [component-intelligence.md](./references/component-intelligence.md) and framework rule file
 2. Inspect target component's existing files (routes, controllers, entrypoints, index.ts)
-3. **React:** Verify existing entrypoint and barrel export exist (read-only — do not generate) | **ERB:** Create minimal rendering controller + route if missing (see [erb-build-rules.md](./references/erb-build-rules.md) — just enough to display the page, no application logic)
-4. Build each section partial/component (one todo per file)
-5. Add mock data (typed fixtures from spec text for backend handoff)
-6. If full-width design: add Nitro content padding override (see Step 7)
-7. Format and lint
-8. Post-build audit: Phase 1 (spec-to-code prop audit)
-9. Post-build audit: Phase 2 (MCP cross-validation with screenshots)
-10. Post-build audit: Phase 3 (layout integrity)
+3. Record planned `playbook-builder` runs (each Figma URL + `node-id`) or state why the spec fetch is skipped — see **Incremental delivery and git commits**
+4. **React:** Verify existing entrypoint and barrel export exist (read-only — do not generate) | **ERB:** Create minimal rendering controller + route if missing (see [erb-build-rules.md](./references/erb-build-rules.md) — just enough to display the page, no application logic)
+5. Build each section partial/component (one todo per file)
+6. Add mock data (typed fixtures from spec text for backend handoff)
+7. If full-width design: add Nitro content padding override (see Step 7)
+8. Format and lint
+9. Post-build audit: Phase 1 (spec-to-code prop audit)
+10. Post-build audit: Phase 2 (MCP cross-validation with screenshots)
+11. Post-build audit: Phase 3 (layout integrity)
 
-**Update each todo as you complete it.** Mark items `in_progress` when starting, `completed` when done. Do not proceed to handoff (Step 10) until all audit phases are complete.
+**Update each todo as you complete it.** Mark items `in_progress` when starting, `completed` when done. Do not proceed to handoff (Step 10) until all three post-build audit phases are complete.
 
 ### Step 6: Build the components
 
@@ -297,6 +473,7 @@ Follow [setup-component.md](./references/setup-component.md) — the developer r
 
 - [REFERENCE.md](./references/REFERENCE.md) — Spec field reference, component mapping, troubleshooting
 - [component-intelligence.md](./references/component-intelligence.md) — playbook-builder processor behavior, MCP guide, component recognition patterns (detached tables, backgrounds, Nav variants, wrappers, maxWidth)
+- [extend-existing-page.md](./references/extend-existing-page.md) — Add/edit existing nitro pages or features; interaction handoffs; prompt templates; spec inventory and atomic commits; Figma-to-code reconciliation
 - [react-build-rules.md](./references/react-build-rules.md) — React/TypeScript: component rules, lint, explicit types, mock data, patterns, troubleshooting
 - [erb-build-rules.md](./references/erb-build-rules.md) — Rails ERB: component rules, snake_case, Select, Stimulus, minimal rendering controller, mock data, troubleshooting
 - [setup-component.md](./references/setup-component.md) — New component creation (delegates to nitro-web generator)

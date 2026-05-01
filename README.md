@@ -37,6 +37,32 @@ Requires a GitHub PAT with `read:packages` scope in your user-level `~/.npmrc`:
 //npm.pkg.github.com/:_authToken=YOUR_TOKEN
 ```
 
+## Consuming these skills from nitro-web
+
+Agents ship UI in **nitro-web** (or another Nitro app), not in this repo alone.
+
+- **Spec fetch:** Install `@powerhome/playbook-builder` in the consuming repo (see above) and set `FIGMA_TOKEN` when fetching specs. Agents may run it via shell (`npx` / `playbook-builder`) or via a **plugin / marketplace** integration (for example nitro-web or plugin-config) that wraps the same package — the requirement is valid PageSpec JSON, not a particular terminal command.
+- **Cursor skills:** Copy or symlink [`.cursor/skills/figma-build/`](.cursor/skills/figma-build/) into nitro-web as `.cursor/skills/figma-build/`, or keep this repo cloned and point Cursor at that skill path so [SKILL.md](.cursor/skills/figma-build/SKILL.md) loads.
+- **Workflow vs rules:** Nitro `.cursor/rules` (Playbook, frontend) enforce tokens and components; figma-build skills define **process** (Path A/C, deltas, MCP, commits). Do not duplicate styling policy here.
+- **Where to start:** Path A vs Path C from SKILL.md; incremental edits use [extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md). Optionally summarize both links from nitro-web `AGENTS.md`.
+
+## Design-to-code pipeline (agents)
+
+Spine for turning Figma into nitro-web UI:
+
+```mermaid
+flowchart LR
+  classify[Classify PathABC]
+  inventory[Spec inventory]
+  fetch[Fetch PageSpec JSON]
+  mcp[MCP gap list]
+  patch[Minimal patch]
+  commits[Atomic commits and audit]
+  classify --> inventory --> fetch --> mcp --> patch --> commits
+```
+
+Choose Path A, B, or C → list planned `node-id`s (or skip rationale) → run `playbook-builder` (shell or plugin) → MCP gap check → smallest code patch → one commit per logical step → scoped post-build audits.
+
 ## Development setup
 
 ```bash
@@ -90,15 +116,85 @@ playbook-builder --url "https://..." | jq '.layout.children[0]'
 playbook-builder --url "https://..." --depth 5 > spec.json
 ```
 
+### Multiple selections and comparison bundles
+
+For add/edit work, fetch the small **delta** node plus a wider **context** node
+when placement matters. The CLI batches those selections in one Figma API
+request and writes a `PageSpecBundle`:
+
+```bash
+playbook-builder \
+  --selection delta "https://www.figma.com/design/abc123/MyFile?node-id=555-666" \
+  --selection context "https://www.figma.com/design/abc123/MyFile?node-id=111-222" \
+  > bundle.json
+```
+
+The bundle contains one spec per selection and, when `delta` and `context` are
+present, a `comparison` object with the best matching path and sibling position
+inside the context tree. Matching first uses exact Figma node IDs, then falls
+back to structural similarity across Playbook components, text, props/styles,
+and tolerant dimensions. Use the delta spec for codegen; use the comparison as
+a placement hint before reconciling with the existing nitro-web files.
+
+Each bundle also includes **`meta`** (tool version, `outputSchemaVersion`,
+timestamp, invocation flags, optional **playbook-ui** AI manifest resolution) and
+**`warnings`** (structural checks, optional manifest validation). Run from a repo
+that depends on **`playbook-ui`** (for example nitro-web), or pass
+**`--playbook-ui-ai-root`** pointing at `playbook-ui/dist/ai`, so component names
+can be checked against `dist/ai/index.json`.
+
+Single-selection **`--url`** output includes **`meta`** and **`warnings`** on the same JSON object as **`target`** and **`layout`** (additive fields for codegen and validation).
+
+For implementation in **nitro-web**, incremental UI changes follow Path C and **Spec inventory and atomic commits** in [extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md); greenfield page builds follow Path A Step 6 / Step 8 commit checkpoints and **Incremental delivery and git commits** in [SKILL.md](.cursor/skills/figma-build/SKILL.md).
+
+### Handing off add/edit work to an agent
+
+For nitro-web work that changes UI which already exists, do not treat the full
+page design as a greenfield build. Agents should follow **Path C** in
+[SKILL.md](.cursor/skills/figma-build/SKILL.md), then use the add/edit workflow and templates in
+[extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md).
+
+Good handoffs include:
+
+- The app page, menu path, route, component pack, or feature name where the
+  change belongs
+- A Figma `node-id` for the smallest frame that contains only the new or changed
+  UI
+- Whether the change is `add_page_section`, `add_inside_feature`,
+  `edit_page_section`, `edit_feature`, or `interaction_only`
+- What should remain untouched, especially existing feature wiring, callbacks,
+  data flow, and page sections
+- Interaction notes when behavior matters: states, triggers, persistence, and
+  any existing API/callback to reuse
+
+Agents should reconcile the scoped Figma spec into the existing nitro-web code
+structure rather than mirroring Figma layer names or regenerating unrelated
+sections. Record planned spec scope up front and land **small, reviewable
+commits** so reviewers can follow progress; see **Spec inventory and atomic
+commits** in
+[extend-existing-page.md](.cursor/skills/figma-build/references/extend-existing-page.md).
+
 ## Flags
 
 | Flag              | Required | Description                                         |
 |-------------------|----------|-----------------------------------------------------|
 | `--url`           | Yes      | Figma design URL with `node-id` query param         |
+| `--selection`     | No       | Role + Figma URL; repeat for comparison bundles     |
 | `--target`        | No       | `react` (default) or `rails`                        |
 | `--raw`           | No       | Output the raw Figma REST API JSON                  |
 | `--no-optimize`   | No       | Skip chrome removal and node flattening              |
 | `--depth`         | No       | Limit API traversal depth (default: full tree)       |
+| `--playbook-ui-ai-root` | No | Directory containing playbook-ui `index.json` (default: `cwd/node_modules/playbook-ui/dist/ai`) |
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Usage or invalid arguments |
+| 2 | Missing `FIGMA_TOKEN` |
+| 3 | Figma API error or other runtime failure |
+| 4 | Requested node not found in API response |
 
 ## Environment
 
@@ -107,6 +203,8 @@ playbook-builder --url "https://..." --depth 5 > spec.json
 | `FIGMA_TOKEN` | Yes      | Figma personal access token          |
 
 ## Output format
+
+Single-node **`--url`** (non-`--raw`) responses are one object: **`target`**, **`layout`**, plus **`meta`** and **`warnings`**. The spec tree is still under **`layout`**.
 
 ```json
 {
@@ -119,19 +217,17 @@ playbook-builder --url "https://..." --depth 5 > spec.json
         "component": "Title",
         "props": { "size": 4, "bold": true },
         "text": "Project Summary"
-      },
-      {
-        "component": "Caption",
-        "props": { "color": "light", "size": "xs" },
-        "text": "Project Number"
-      },
-      {
-        "component": "Body",
-        "props": { "color": "link" },
-        "text": "38-67893"
       }
     ]
-  }
+  },
+  "meta": {
+    "playbookBuilderVersion": "0.1.1",
+    "outputSchemaVersion": 2,
+    "generatedAt": "2026-04-30T12:00:00.000Z",
+    "invocation": { "mode": "url", "target": "react", "raw": false, "noOptimize": false },
+    "playbookUiAi": { "aiDir": "/…/node_modules/playbook-ui/dist/ai", "componentNameCount": 120 }
+  },
+  "warnings": []
 }
 ```
 
