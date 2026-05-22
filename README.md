@@ -241,6 +241,19 @@ Single-node **`--url`** (non-`--raw`) responses are one object: **`target`**, **
 | TEXT            | fontSize < 14 + bold             | Detail                      |
 | TEXT            | default                          | Body                        |
 | INSTANCE        | name matches Playbook component  | That component              |
+
+### Icon and nested icon carriers
+
+Playbook `Icon` instances in Figma often expose **size** on the parent and **glyph / color / dark** on a direct nested carrier:
+
+| Nested layer | Typical props merged into parent |
+|--------------|----------------------------------|
+| `.icon`, `.iconInner` | `icon`, `color`, `dark` (into `Icon`); `icon` only into other parents |
+| `.iconSelection` | `icon` only (e.g. Button — no size/color/dark leak) |
+
+`INSTANCE_SWAP` values on `icon#…` properties are resolved to glyph names via the fetched node tree and the Figma `components` map — raw node ids are never emitted in `props.icon`.
+
+Appearance-backed values (`See Appearances`) are skipped until a follow-up adds variable resolution.
 | FRAME           | auto-layout + card styling       | Card                        |
 | FRAME           | auto-layout                      | Flex                        |
 | FRAME           | static + card styling            | Card                        |

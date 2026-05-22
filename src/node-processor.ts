@@ -19,6 +19,7 @@ import type {
   ComponentMap, ChildrenProcessorFn,
 } from "./types"
 import { INTERNAL_COMPONENTS, isInternalComponent } from "./types"
+import { buildFigmaNodeIndex } from "./figma-node-index"
 import { processText } from "./text-processor"
 import { processInstance } from "./instance-processor"
 import { processFrame } from "./frame-processor"
@@ -35,12 +36,13 @@ export function processTree(
   variables?: VariableMap,
 ): SpecNode {
   const vars = variables ?? new Map<string, string>()
+  const nodeIndex = buildFigmaNodeIndex(root)
 
   const processNodeFn = (node: FigmaNode): SpecNode =>
-    processNode(node, components, vars)
+    processNode(node, components, vars, nodeIndex)
 
   const processChildrenFn: ChildrenProcessorFn = (nodes, mode, align) =>
-    processChildren(nodes, components, vars, mode, align)
+    processChildren(nodes, components, vars, nodeIndex, mode, align)
 
   const spec = processNodeFn(root)
   spec.figmaNodeId = root.id
@@ -56,6 +58,7 @@ function processNode(
   node: FigmaNode,
   components: ComponentMap,
   variables: VariableMap,
+  nodeIndex: Map<string, FigmaNode>,
 ): SpecNode {
   if (node.visible === false) {
     return {
@@ -66,7 +69,7 @@ function processNode(
   }
 
   const childrenFn: ChildrenProcessorFn = (nodes, mode, align) =>
-    processChildren(nodes, components, variables, mode, align)
+    processChildren(nodes, components, variables, nodeIndex, mode, align)
 
   const frameFn = (n: FigmaNode): SpecNode =>
     processFrame(n, variables, childrenFn)
@@ -77,7 +80,9 @@ function processNode(
       return processText(node, variables)
 
     case "INSTANCE":
-      return processInstance(node, components, variables, frameFn, childrenFn)
+      return processInstance(
+        node, components, variables, nodeIndex, frameFn, childrenFn,
+      )
 
     case "FRAME":
     case "GROUP":
@@ -110,6 +115,7 @@ function processChildren(
   nodes: FigmaNode[] | undefined,
   components: ComponentMap,
   variables: VariableMap,
+  nodeIndex: Map<string, FigmaNode>,
   parentLayoutMode?: string,
   parentCrossAlign?: string,
 ): SpecNode[] {
@@ -117,7 +123,7 @@ function processChildren(
 
   return nodes
     .flatMap((n) => {
-      const spec = processNode(n, components, variables)
+      const spec = processNode(n, components, variables, nodeIndex)
       if (spec.component === INTERNAL_COMPONENTS.FRAME) return spec.children ?? []
       if (isInternalComponent(spec.component)) return []
 

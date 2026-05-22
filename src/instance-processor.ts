@@ -38,6 +38,10 @@ import {
   resolvePlaybookName,
   buildBreadcrumbSpec,
 } from "./instance-helpers"
+import {
+  filterMergedIconChildren,
+  mergeNestedIconCarrierProps,
+} from "./icon-instance-props"
 import { processTable } from "./table-processor"
 import { inferNavVariant } from "./nav-processor"
 
@@ -94,6 +98,7 @@ export function processInstance(
   node: FigmaNode,
   components: ComponentMap,
   variables: VariableMap,
+  nodeIndex: Map<string, FigmaNode>,
   fallbackToFrame: NodeProcessorFn,
   processChildren: ChildrenProcessorFn
 ): SpecNode {
@@ -104,6 +109,7 @@ export function processInstance(
       node,
       components,
       variables,
+      nodeIndex,
       processChildren
     )
   }
@@ -117,6 +123,7 @@ export function processInstance(
         node,
         components,
         variables,
+        nodeIndex,
         processChildren
       )
     }
@@ -134,21 +141,31 @@ function buildPlaybookNode(
   node: FigmaNode,
   components: ComponentMap,
   variables: VariableMap,
+  nodeIndex: Map<string, FigmaNode>,
   processChildren: ChildrenProcessorFn
 ): SpecNode {
   if (TABLE_NAMES.has(name)) {
     return processTable(node, variables)
   }
 
+  const extractOpts = { components, nodeIndex, includeDefaults: name === "Icon" }
+  const instanceProps = extractInstanceProps(node, name, extractOpts)
+  const { props: iconMerged, skipChildIds } = mergeNestedIconCarrierProps(
+    name, node, components, nodeIndex,
+  )
+  const mergedProps = { ...instanceProps, ...iconMerged }
+
   const result: SpecNode = { component: name }
-  const instanceProps = extractInstanceProps(node, name)
-  if (Object.keys(instanceProps).length) result.props = instanceProps
+  if (Object.keys(mergedProps).length) result.props = mergedProps
+
+  const figmaChildren = filterMergedIconChildren(node.children, skipChildIds)
 
   if (CONTAINER_NAMES.has(name)) {
     const containerResult = buildContainerNode(
       result,
       name,
       node,
+      figmaChildren,
       variables,
       processChildren
     )
@@ -156,9 +173,9 @@ function buildPlaybookNode(
   } else if (FORM_INPUT_NAMES.has(name)) {
     buildFormInputNode(result, name, node)
   } else if (CHILD_ACCEPTING_NAMES.has(name)) {
-    buildChildAcceptingNode(result, node, components, variables)
+    buildChildAcceptingNode(result, node, components, variables, nodeIndex)
   } else {
-    const text = extractText(node.children)
+    const text = extractText(figmaChildren)
     if (text) result.text = text
   }
 
@@ -173,7 +190,7 @@ function buildPlaybookNode(
   }
 
   if (!CHILD_ACCEPTING_NAMES.has(name)) {
-    const textAlign = extractTextAlign(node.children)
+    const textAlign = extractTextAlign(figmaChildren)
     if (textAlign) {
       if (!result.props) result.props = {}
       result.props.textAlign = textAlign
@@ -203,11 +220,12 @@ function buildContainerNode(
   result: SpecNode,
   name: string,
   node: FigmaNode,
+  figmaChildren: FigmaNode[] | undefined,
   variables: VariableMap,
   processChildren: ChildrenProcessorFn
 ): SpecNode | null {
   const children = processChildren(
-    node.children,
+    figmaChildren,
     node.layoutMode,
     node.counterAxisAlignItems
   )
@@ -286,9 +304,10 @@ function buildChildAcceptingNode(
   result: SpecNode,
   node: FigmaNode,
   components: ComponentMap,
-  variables: VariableMap
+  variables: VariableMap,
+  nodeIndex: Map<string, FigmaNode>
 ): void {
-  const children = extractPlaybookChildren(node, components, variables)
+  const children = extractPlaybookChildren(node, components, variables, nodeIndex)
   if (children.length) {
     const layoutCenter = detectLayoutTextCenter(node)
     if (layoutCenter) {
@@ -313,7 +332,8 @@ function buildChildAcceptingNode(
 function extractPlaybookChildren(
   node: FigmaNode,
   components: ComponentMap,
-  variables: VariableMap
+  variables: VariableMap,
+  nodeIndex: Map<string, FigmaNode>
 ): SpecNode[] {
   if (!node.children) return []
   const results: SpecNode[] = []
@@ -327,13 +347,17 @@ function extractPlaybookChildren(
           : undefined)
       if (resolved && TEXT_COLOR_NAMES.has(resolved)) {
         results.push(
-          buildPlaybookNode(resolved, child, components, variables, () => [])
+          buildPlaybookNode(
+            resolved, child, components, variables, nodeIndex, () => [],
+          )
         )
         continue
       }
     }
     if (child.children) {
-      results.push(...extractPlaybookChildren(child, components, variables))
+      results.push(
+        ...extractPlaybookChildren(child, components, variables, nodeIndex),
+      )
     }
   }
   return results

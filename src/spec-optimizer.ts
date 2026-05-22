@@ -146,6 +146,7 @@ function stripChrome(node: SpecNode): SpecNode {
 const SELF_CONTAINED_COMPONENTS = new Set([
   "SectionSeparator", "Loading", "LoadingInline",
   "ProgressSimple", "DistributionBar", "SkeletonLoading",
+  "Icon", "IconButton", "CircleIconButton", "IconCircle",
 ])
 
 function flattenWrappers(node: SpecNode): SpecNode {
